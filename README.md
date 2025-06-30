@@ -54,7 +54,6 @@ while some ideas were inspired, the execution is completely reimagined and built
 **RaceHub Pro** is open to partnerships with sim racing leagues, data providers, and developers.
 
 📩 Contact: [Tixer87 on GitHub](https://github.com/Tixer87)  
-🔗 More to come on [Instagram @formula_toons](https://instagram.com/formula_toons)
 
 ---
 
