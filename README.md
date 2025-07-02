@@ -14,5 +14,4 @@ Still hidden. But not for long.
 Stay tuned – because GridSync isn’t just another tool.  
 It’s the backbone of a new racing era.
 
-[<!-- Launch incoming – gridsync.app -->
-](https://gridsync.ch/)
+[-- Launch incoming – gridsync.app --](https://gridsync.ch/)
