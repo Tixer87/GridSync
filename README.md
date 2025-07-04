@@ -2,7 +2,9 @@
 
 **The meta dev tool for next-gen racing leagues.**
 
-What happens when real-time telemetry, strategy logic, and race operations converge into one modular platform combined with AI?
+What happens when real-time telemetry, 
+strategy logic, 
+and race operations converge into one modular platform combined with AI?
 
 **Exactly. GridSync.**
 
