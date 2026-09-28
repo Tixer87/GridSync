@@ -1,114 +1,140 @@
 # Pit Radio
 
-Pit Radio is the GridSync Discord broadcast system.
+Pit Radio is a reusable Discord publishing workflow built with GitHub Actions and Discord webhooks.
 
-It uses GitHub Actions together with Discord webhooks to publish structured announcements without requiring a permanently running Discord bot or external server.
+It is designed for communities, projects and repositories that want structured Discord announcements without running a permanent Discord bot.
 
-## What Pit Radio Can Do
+## How It Works
 
-- Publish automatic GitHub release announcements
-- Publish manual bulletins
-- Publish changelog entries
-- Send to different Discord channels or servers
-- Select the target before a manual workflow run
-- Ping configured Discord roles
-- Use GridSync custom emojis
-- Fall back to standard Unicode emojis on servers without GridSync emojis
-- Render reusable branded embeds
-- Provide a dedicated test mode
-- Link every broadcast back to GridSync
-
-## Current Targets
-
-The current GridSync workflow supports:
+Pit Radio runs when one of two things happens:
 
 ```text
-gridsync
-changelog
-cannabeez
-both
+Manual workflow run
+or
+Published GitHub Release
 ```
 
-`both` is intended for broadcasts that should be sent to the main GridSync destination and the external community destination.
+The workflow then:
 
-The changelog target uses its own webhook and can therefore publish directly into the GridSync changelog channel.
+```text
+Reads configuration
+→ builds the Discord message
+→ selects the destination
+→ selects custom or fallback emojis
+→ optionally adds a role mention
+→ sends the message through a Discord webhook
+```
 
-## Modes
+## Included Modes
 
 ### Test
 
-Used to verify:
+Use test mode before publishing real announcements.
 
-- webhook connection
+It checks:
+
+- webhook routing
 - selected destination
 - custom emoji rendering
 - fallback emoji rendering
 - embed formatting
+- optional website link
 
 ### Manual
 
-Used for:
+Manual mode lets you enter an announcement directly from GitHub Actions.
 
-- community announcements
-- Discord server updates
-- project news
-- changelog entries
-- special releases
-
-### Automatic Release
-
-Triggered by a published GitHub Release.
-
-This requires no manual workflow run.
-
-## Custom Emoji System
-
-GridSync targets can use server specific emojis through Discord's custom emoji syntax:
+Available fields:
 
 ```text
-<:emoji_name:emoji_id>
+manual_title
+manual_intro
+manual_details
+manual_url
 ```
 
-Pit Radio stores the emoji IDs in the workflow environment and builds the Discord syntax automatically.
-
-For destinations that do not have access to the GridSync emojis, Pit Radio uses Unicode fallback values instead.
-
-This means the same announcement can be sent to multiple servers without breaking its layout.
-
-## Link Block
-
-Pit Radio uses a fixed link section:
+`manual_details` uses the pipe character as a separator:
 
 ```text
-Previews · Details · Download
-Open on GridSync
+First item | Second item | Third item
 ```
 
-If a manual GridSync URL is supplied, that URL is used.
+Pit Radio turns each item into a separate line.
 
-If no manual URL is supplied, Pit Radio falls back to:
+### Release
 
-https://gridsync.ch/
+When the workflow is configured with:
 
-The embed title itself remains non clickable so it does not imply that a dedicated article exists for every announcement.
+```yaml
+on:
+  release:
+    types: [published]
+```
 
-## Why GitHub Actions?
+a published GitHub Release can trigger Pit Radio automatically.
 
-Pit Radio does not need:
+The release name, release body and release URL are read from GitHub and used to build the Discord message.
 
-- a VPS
-- a hosted bot process
-- a Discord bot token
-- a permanently running service
+## Destinations
 
-GitHub starts the workflow only when needed.
+The example workflow contains four generic targets:
 
-This makes Pit Radio suitable for small community projects that want structured Discord automation without maintaining their own backend.
+```text
+main
+changelog
+external
+both
+```
+
+These are only examples.
+
+You can rename them to match your own project, for example:
+
+```text
+announcements
+updates
+partner
+all
+```
+
+If you rename targets, update all matching target checks in the workflow.
+
+## Custom Emojis
+
+Custom emojis are optional.
+
+When a custom emoji ID is configured, Pit Radio can build Discord syntax like:
+
+```text
+<:emoji_name:123456789012345678>
+```
+
+When an emoji ID is missing or custom emojis are disabled for a destination, Pit Radio uses a normal Unicode fallback.
+
+This makes the same workflow usable on servers that do not share the same custom emojis.
+
+## Role Mentions
+
+Role mentions are optional.
+
+If a role ID is configured, manual announcements and release broadcasts can mention that role.
+
+Test messages should not ping roles.
+
+## Website Link
+
+The example workflow supports an optional website or details page.
+
+If `manual_url` is supplied, that URL is used for the current manual post.
+
+If it is empty, the workflow can fall back to the configured `WEBSITE_URL`.
+
+If neither exists, the link block is omitted.
 
 ## Setup
 
 See [`SETUP.md`](SETUP.md).
 
-## Technical Overview
+## Technical Notes
 
 See [`../docs/pit-radio.md`](../docs/pit-radio.md).
