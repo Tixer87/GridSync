@@ -1,89 +1,72 @@
-# GridSync Community Projects
+# Pit Radio Community Template
 
-Community driven sim racing projects, tools and resources.
+Pit Radio is a reusable Discord broadcast workflow powered by GitHub Actions and Discord webhooks.
 
-GridSync started around custom iRaceDeck Race Engineer voice packs and has grown into a broader community project covering voice packs, RaTiX, liveries, tools and Discord automation.
+This branch is intended as a clean community template. It contains documentation and an example workflow that other users can copy into their own repository and adapt to their own Discord server.
 
-## Projects
+No private webhook URLs, tokens, server specific IDs or project specific values should be stored in the public workflow file.
 
-### Pit Radio
+## What Pit Radio Can Do
 
-Pit Radio is a lightweight Discord broadcast system powered by GitHub Actions and Discord webhooks.
+Pit Radio can:
 
-It can currently handle:
+- Send manual Discord announcements
+- Send changelog posts
+- Send automatic GitHub release announcements
+- Route messages to different Discord webhooks
+- Mention optional Discord roles
+- Use optional custom Discord emojis
+- Fall back to standard Unicode emojis
+- Run webhook and emoji tests
+- Add a reusable website or details link
+- Work without a permanently running bot or external server
 
-- Automatic GitHub release broadcasts
-- Manual community bulletins
-- Changelog broadcasts
-- Multiple Discord webhook targets
-- Target selection per workflow run
-- Role notifications
-- GridSync custom emojis
-- Automatic standard emoji fallbacks for other servers
-- Reusable Discord embeds
-- Test mode for webhook and emoji checks
-- Fixed GridSync link blocks
-- No external server or permanently running bot required
-
-Documentation: [`pit-radio/README.md`](pit-radio/README.md)
-
-### Voice Packs
-
-Community voice packs for iRaceDeck Race Engineer.
-
-Current GridSync packs and projects include:
-
-- Ryan Race Engineer
-- Snoop Voice Pack
-- Family Guy multi voice pack
-- Pit Wall Legends
-- Additional community voice projects
-
-Documentation: [`docs/voice-packs.md`](docs/voice-packs.md)
-
-### RaTiX
-
-RaTiX is a GridSync driver rating and race analysis project.
-
-More information:
-
-https://gridsync.ch/ratix/
-
-### Liveries
-
-GridSync liveries and community designs for sim racing.
-
-### Tools
-
-Small utilities, experiments and supporting tools created around the GridSync ecosystem.
-
-## Website
-
-https://gridsync.ch/
-
-## Discord
-
-https://discord.gg/RSG338jb44
-
-## Repository Structure
+## Files
 
 ```text
 .github/
 └─ workflows/
-   └─ discord-release.yml
+   └─ your-live-workflow.yml
 
 pit-radio/
 ├─ README.md
 ├─ SETUP.md
-└─ CHANGELOG.md
+├─ CHANGELOG.md
+└─ examples/
+   └─ discord-release.example.yml
 
 docs/
-├─ pit-radio.md
-└─ voice-packs.md
-
-README.md
+└─ pit-radio.md
 ```
 
-## Community
+The example workflow belongs in:
 
-GridSync is built around practical community projects. Features may begin as small internal tools and later become reusable resources when they prove useful beyond the original project.
+```text
+pit-radio/examples/discord-release.example.yml
+```
+
+A user who wants to activate Pit Radio should copy that file into:
+
+```text
+.github/workflows/
+```
+
+and rename it as desired.
+
+## Start Here
+
+1. Read [`pit-radio/SETUP.md`](pit-radio/SETUP.md)
+2. Copy the example workflow into `.github/workflows/`
+3. Create the required Discord webhooks
+4. Add webhook URLs as GitHub Actions Secrets
+5. Add optional IDs and branding as GitHub Actions Variables
+6. Run Pit Radio in test mode
+7. Enable manual or release broadcasts
+
+## Security
+
+Never place webhook URLs, bot tokens, API keys or passwords directly in a public workflow file.
+
+Use GitHub Actions Secrets for sensitive values.
+
+Server IDs, role IDs and emoji IDs are not secret credentials, but keeping them in GitHub Variables makes the template easier to reuse.
