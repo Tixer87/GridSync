@@ -1,48 +1,55 @@
 # Pit Radio Changelog
 
-## Current Development Version
+## Community Template
 
-### Added
+### Included
 
-- Multiple Discord webhook targets
-- Dedicated GridSync changelog target
-- Manual target selection
-- Manual announcement mode
+- Manual Discord announcements
+- Automatic GitHub release announcements
+- Multiple webhook destinations
+- Main, changelog and external example targets
+- Optional role mentions
+- Optional custom Discord emojis
+- Unicode emoji fallbacks
 - Test mode
-- Automatic GitHub release broadcasts
-- Discord role mentions
-- GridSync custom emoji support
-- Unicode emoji fallbacks for external servers
-- Reusable GridSync link block
-- Branded Discord embeds
+- Configurable community name
+- Configurable website URL
+- Reusable Discord embed formatting
+- Safe GitHub Actions Secret usage
+- GitHub Actions Variables for reusable configuration
 
-### Changed
+### Template Goal
 
-- Pit Radio is no longer limited to a single Voice Packs webhook
-- Manual broadcasts can be routed to individual destinations
-- Embed titles remain non clickable
-- GridSync navigation is handled through the fixed link block
-- External servers use fallback emojis when GridSync custom emojis are unavailable
+The community template is intentionally generic.
 
-### Current Targets
+It does not contain:
+
+- private webhook URLs
+- passwords
+- API keys
+- bot tokens
+- project specific server IDs
+- project specific role IDs
+- project specific emoji IDs
+- project specific release content
+
+Users are expected to configure their own values through GitHub Actions Secrets and Variables.
+
+### Current Example Targets
 
 ```text
-gridsync
+main
 changelog
-cannabeez
+external
 both
 ```
 
-### Current Modes
+These names are placeholders and can be renamed.
+
+### Current Example Modes
 
 ```text
 test
 manual
 automatic release
 ```
-
-## Project Direction
-
-Pit Radio began as a small release notification workflow for GridSync voice packs.
-
-It has since evolved into a reusable Discord publishing system for GridSync community projects and can be extended with additional channels, servers, templates and broadcast types.
