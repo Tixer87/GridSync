@@ -4,6 +4,23 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "test | manual"
+        required: true
+        default: "test"
+      manual_title:
+        description: "Manual embed title"
+        required: false
+        default: ""
+      manual_url:
+        description: "Manual link"
+        required: false
+        default: ""
+      manual_body:
+        description: "Manual message body"
+        required: false
+        default: ""
 
 jobs:
   broadcast:
@@ -16,6 +33,10 @@ jobs:
           RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
           RELEASE_BODY: ${{ github.event.release.body }}
+          MANUAL_MODE: ${{ github.event.inputs.mode }}
+          MANUAL_TITLE: ${{ github.event.inputs.manual_title }}
+          MANUAL_URL: ${{ github.event.inputs.manual_url }}
+          MANUAL_BODY: ${{ github.event.inputs.manual_body }}
         run: |
           python - <<'PY'
           import json
@@ -25,14 +46,19 @@ jobs:
 
           webhook = os.environ["DISCORD_WEBHOOK"].strip()
           event = os.environ.get("EVENT_NAME", "")
+          manual_mode = (os.environ.get("MANUAL_MODE") or "").strip().lower()
+          manual_title = (os.environ.get("MANUAL_TITLE") or "").strip()
+          manual_url = (os.environ.get("MANUAL_URL") or "").strip()
+          manual_body = (os.environ.get("MANUAL_BODY") or "").strip()
+
+          def trim(text, limit):
+              text = text or ""
+              return text if len(text) <= limit else text[:limit - 3] + "..."
 
           if event == "release":
               name = os.environ.get("RELEASE_NAME") or "New GridSync Release"
               url = os.environ.get("RELEASE_URL", "")
-              body = os.environ.get("RELEASE_BODY", "").strip()
-
-              if len(body) > 1800:
-                  body = body[:1797] + "..."
+              body = trim((os.environ.get("RELEASE_BODY") or "").strip(), 1800)
 
               payload = {
                   "content": "🏁 **NEW GRIDSYNC RELEASE — LIVE ON AIR**",
@@ -48,6 +74,23 @@ jobs:
                       }
                   ]
               }
+
+          elif manual_mode == "manual":
+              payload = {
+                  "content": "📻 **Pit Radio special bulletin**",
+                  "embeds": [
+                      {
+                          "title": trim(manual_title or "GridSync Announcement", 256),
+                          "url": manual_url or None,
+                          "description": trim(manual_body or "Manual GridSync broadcast.", 3500),
+                          "color": 16766720,
+                          "footer": {
+                              "text": "Pit Radio · GridSync Community"
+                          }
+                      }
+                  ]
+              }
+
           else:
               payload = {
                   "content": "📻 **Pit Radio check. Radio loud and clear.**",
