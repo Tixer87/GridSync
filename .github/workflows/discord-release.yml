@@ -16,7 +16,7 @@ on:
         required: true
         default: "gridsync"
         type: choice
-        options: [gridsync, cannabeez, changelog, both]
+        options: [gridsync, changelog, cannabeez, both]
       manual_title:
         description: "Release / announcement title"
         required: false
@@ -41,6 +41,7 @@ jobs:
       - name: Broadcast to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          CHANGELOG_WEBHOOK: ${{ secrets.CHANGELOG_WEBHOOK }}
           CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
           GRIDSYNC_ROLE_ID: "1553676045692043294"
           CANNABEEZ_ROLE_ID: "1143968549883351101"
@@ -79,7 +80,8 @@ jobs:
           target = os.getenv("MANUAL_TARGET", "gridsync").strip().lower()
 
           if event == "release": target = "both"
-          if target not in {"gridsync", "cannabeez", "both"}: target = "gridsync"
+          if target not in {"gridsync", "changelog", "cannabeez", "both"}:
+              target = "gridsync"
 
           cfg = {
               "gs": ("gridsync_symbol", "EMOJI_GRIDSYNC", "\U0001F3C1"),
@@ -116,7 +118,8 @@ jobs:
           def send(webhook, payload, role="", ping=False):
               msg = json.loads(json.dumps(payload))
               msg["allowed_mentions"] = {"roles": [role]} if ping and role else {"parse": []}
-              if ping and role: msg["content"] = f"<@&{role}>\n" + msg.get("content", "")
+              if ping and role:
+                  msg["content"] = f"<@&{role}>\n" + msg.get("content", "")
 
               req = urllib.request.Request(
                   webhook,
@@ -141,7 +144,6 @@ jobs:
               if event == "release":
                   name = os.getenv("RELEASE_NAME") or "New GridSync Release"
                   body = trim(os.getenv("RELEASE_BODY", "").strip(), 1700)
-
                   return {
                       "content": f"{e['gs']} **PIT RADIO // NEW RELEASE**",
                       "embeds": [{
@@ -171,12 +173,10 @@ jobs:
                       "gs", "discord", "voice", "ratix", "tools",
                       "download", "irdh", "iracedeck", "car1", "car2", "car3"
                   ]
-
                   lines = [
                       f"{e[order[i]] if i < len(order) else '•'} {x}"
                       for i, x in enumerate(details)
                   ]
-
                   desc = "\n\n".join(
                       x for x in [
                           f"*{intro}*" if intro else "",
@@ -216,8 +216,7 @@ jobs:
                       "title": "GridSync Pit Radio",
                       "description": (
                           "Radio loud and clear.\n\n"
-                          "**Emoji check**\n"
-                          + "\n".join(lines)
+                          "**Emoji check**\n" + "\n".join(lines)
                       ),
                       "color": 16766720,
                       "fields": link_field(e),
@@ -230,6 +229,14 @@ jobs:
           if target in {"gridsync", "both"}:
               send(
                   os.environ["DISCORD_WEBHOOK"],
+                  build(True),
+                  os.environ["GRIDSYNC_ROLE_ID"],
+                  ping
+              )
+
+          if target == "changelog":
+              send(
+                  os.environ["CHANGELOG_WEBHOOK"],
                   build(True),
                   os.environ["GRIDSYNC_ROLE_ID"],
                   ping
