@@ -1,0 +1,353 @@
+name: Pit Radio
+
+# Pit Radio can run automatically on a published GitHub Release
+# or manually from the GitHub Actions interface.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Pit Radio mode"
+        required: true
+        default: "test"
+        type: choice
+        options: [test, manual]
+      target:
+        description: "Discord target"
+        required: true
+        default: "main"
+        type: choice
+        options: [main, changelog, external, both]
+      manual_title:
+        description: "Announcement title"
+        required: false
+        default: ""
+      manual_intro:
+        description: "Short intro"
+        required: false
+        default: ""
+
+      # Separate multiple detail lines with |
+      manual_details:
+        description: "Details separated with |"
+        required: false
+        default: ""
+      manual_url:
+        description: "Optional details page"
+        required: false
+        default: ""
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Broadcast to Discord
+        env:
+          # Webhook URLs must be stored as GitHub Actions Secrets.
+          # Never place real webhook URLs directly in this file.
+          MAIN_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          CHANGELOG_WEBHOOK: ${{ secrets.CHANGELOG_WEBHOOK }}
+          EXTERNAL_WEBHOOK: ${{ secrets.EXTERNAL_DISCORD_WEBHOOK }}
+          # Role IDs are optional GitHub repository variables.
+          # Leave them empty if role mentions are not required.
+          MAIN_ROLE_ID: ${{ vars.MAIN_ROLE_ID }}
+          EXTERNAL_ROLE_ID: ${{ vars.EXTERNAL_ROLE_ID }}
+          # Basic community branding.
+          COMMUNITY_NAME: ${{ vars.COMMUNITY_NAME }}
+          WEBSITE_URL: ${{ vars.WEBSITE_URL }}
+          # Optional Discord custom emoji IDs.
+          # If an ID is missing, Pit Radio uses a Unicode fallback.
+          EMOJI_CAR1: ${{ vars.EMOJI_CAR1 }}
+          EMOJI_CAR2: ${{ vars.EMOJI_CAR2 }}
+          EMOJI_CAR3: ${{ vars.EMOJI_CAR3 }}
+          EMOJI_DISCORD: ${{ vars.EMOJI_DISCORD }}
+          EMOJI_DOWNLOAD: ${{ vars.EMOJI_DOWNLOAD }}
+          EMOJI_LOGO: ${{ vars.EMOJI_LOGO }}
+          EMOJI_MAIN: ${{ vars.EMOJI_MAIN }}
+          EMOJI_RACING: ${{ vars.EMOJI_RACING }}
+          EMOJI_STATS: ${{ vars.EMOJI_STATS }}
+          EMOJI_TOOLS: ${{ vars.EMOJI_TOOLS }}
+          EMOJI_VOICE: ${{ vars.EMOJI_VOICE }}
+          # GitHub event data.
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          # Manual workflow input data.
+          MANUAL_MODE: ${{ github.event.inputs.mode }}
+          MANUAL_TARGET: ${{ github.event.inputs.target }}
+          MANUAL_TITLE: ${{ github.event.inputs.manual_title }}
+          MANUAL_INTRO: ${{ github.event.inputs.manual_intro }}
+          MANUAL_DETAILS: ${{ github.event.inputs.manual_details }}
+          MANUAL_URL: ${{ github.event.inputs.manual_url }}
+
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+          
+          # Basic configuration with safe defaults.
+          name = os.getenv("COMMUNITY_NAME", "").strip() or "Community"
+          website = os.getenv("WEBSITE_URL", "").strip()
+          event = os.getenv("EVENT_NAME", "")
+          mode = os.getenv("MANUAL_MODE", "").strip().lower()
+          target = os.getenv("MANUAL_TARGET", "main").strip().lower()
+
+          # Published releases automatically use the normal broadcast route.
+          if event == "release":
+              target = "both"
+
+          # Prevent invalid targets from routing somewhere unexpected.
+          if target not in {"main", "changelog", "external", "both"}:
+              target = "main"
+
+          # Each entry contains:
+          # logical key -> Discord emoji name -> env variable -> fallback
+          cfg = {
+              "main": ("community", "EMOJI_MAIN", "\U0001F3C1"),
+              "logo": ("community_logo", "EMOJI_LOGO", "\U0001F3C1"),
+              "discord": ("discord", "EMOJI_DISCORD", "\U0001F4AC"),
+              "download": ("download", "EMOJI_DOWNLOAD", "\u2B07\uFE0F"),
+              "voice": ("voice", "EMOJI_VOICE", "\U0001F399\uFE0F"),
+              "stats": ("stats", "EMOJI_STATS", "\U0001F4CA"),
+              "tools": ("tools", "EMOJI_TOOLS", "\U0001F6E0\uFE0F"),
+              "racing": ("racing", "EMOJI_RACING", "\U0001F3CE\uFE0F"),
+              "car1": ("car1", "EMOJI_CAR1", "\U0001F3CE\uFE0F"),
+              "car2": ("car2", "EMOJI_CAR2", "\U0001F3CE\uFE0F"),
+              "car3": ("car3", "EMOJI_CAR3", "\U0001F3CE\uFE0F")
+          }
+          # Build the emoji set.
+          # custom=True uses Discord custom emojis when IDs exist.
+          # custom=False always uses the fallback set.
+          def icons(custom):
+              return {
+                  k: f"<:{n}:{os.getenv(env)}>"
+                  if custom and os.getenv(env) else fallback
+                  for k, (n, env, fallback) in cfg.items()
+              }
+          # Discord has message size limits, so long text is trimmed.
+          def trim(text, limit):
+              text = text or ""
+              return text if len(text) <= limit else text[:limit - 3] + "..."
+
+          # Standard link block used at the bottom of embeds.
+          # If no manual URL is supplied, the configured website is used.
+          def link_field(e, url=""):
+              link = url or website
+              if not link:
+                  return []
+              return [{
+                  "name": f"{e['download']} Previews · Details · Download",
+                  "value": f"[Open details]({link})",
+                  "inline": False
+              }]
+          # Send the finished JSON payload to Discord.
+          def send(webhook, payload, role="", ping=False):
+              if not webhook:
+                  print("Webhook not configured. Skipping target.")
+                  return
+              msg = json.loads(json.dumps(payload))
+              # Only allow the exact configured role to be mentioned.
+              msg["allowed_mentions"] = (
+                  {"roles": [role]}
+                  if ping and role else {"parse": []}
+              )
+              if ping and role:
+                  msg["content"] = (
+                      f"<@&{role}>\n"
+                      + msg.get("content", "")
+                  )
+              req = urllib.request.Request(
+                  webhook,
+                  data=json.dumps(msg).encode(),
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": "Pit-Radio/1.0"
+                  },
+                  method="POST"
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      print(
+                          "Pit Radio broadcast successful: "
+                          f"HTTP {r.status}"
+                      )
+              except urllib.error.HTTPError as e:
+                  print(e.read().decode(errors="replace"))
+                  raise
+
+          # Build the Discord payload for the current mode.
+          def build(custom):
+              e = icons(custom)
+
+              # Automatic GitHub Release broadcast.
+              if event == "release":
+                  title = (
+                      os.getenv("RELEASE_NAME")
+                      or f"New {name} Release"
+                  )
+                  body = trim(
+                      os.getenv("RELEASE_BODY", "").strip(),
+                      1700
+                  )
+                  release_url = os.getenv("RELEASE_URL", "")
+                  return {
+                      "content": (
+                          f"{e['main']} "
+                          "**PIT RADIO // NEW RELEASE**"
+                      ),
+                      "embeds": [{
+                          "title": title,
+                          "description": (
+                              body
+                              or "A new release is now available."
+                          ),
+                          "color": 16766720,
+                          "fields": link_field(
+                              e,
+                              release_url
+                          ),
+                          "footer": {
+                              "text": f"Pit Radio · {name}"
+                          }
+                      }]
+                  }
+              # Manually entered community announcement.
+              if mode == "manual":
+                  title = trim(
+                      os.getenv(
+                          "MANUAL_TITLE",
+                          ""
+                      ).strip()
+                      or f"{name} Announcement",
+                      256
+                  )
+                  intro = trim(
+                      os.getenv(
+                          "MANUAL_INTRO",
+                          ""
+                      ).strip(),
+                      500
+                  )
+                  url = os.getenv(
+                      "MANUAL_URL",
+                      ""
+                  ).strip()
+
+                  # Split detail items at each | character.
+                  details = [
+                      x.strip()
+                      for x in os.getenv(
+                          "MANUAL_DETAILS",
+                          ""
+                      ).split("|")
+                      if x.strip()
+                  ]
+
+                  # Detail lines receive icons in this order.
+                  order = [
+                      "main",
+                      "discord",
+                      "voice",
+                      "stats",
+                      "tools",
+                      "download",
+                      "racing",
+                      "car1",
+                      "car2",
+                      "car3"
+                  ]
+                  lines = [
+                      (
+                          f"{e[order[i]] if i < len(order) else '•'} "
+                          f"{item}"
+                      )
+                      for i, item in enumerate(details)
+                  ]
+                  desc = "\n\n".join(
+                      x for x in [
+                          f"*{intro}*" if intro else "",
+                          "\n".join(lines)
+                      ]
+                      if x
+                  )
+                  return {
+                      "content": (
+                          f"{e['main']} "
+                          "**PIT RADIO // COMMUNITY BULLETIN**"
+                      ),
+                      "embeds": [{
+                          "title": title,
+                          "description": (
+                              desc
+                              or "Community update."
+                          ),
+                          "color": 16766720,
+                          "fields": link_field(e, url),
+                          "footer": {
+                              "text": f"Pit Radio · {name}"
+                          }
+                      }]
+                  }
+              # Test mode checks webhook routing and emoji rendering.
+              lines = [
+                  f"{e['main']} Main",
+                  f"{e['logo']} Logo",
+                  f"{e['discord']} Discord",
+                  f"{e['download']} Download",
+                  f"{e['voice']} Voice",
+                  f"{e['stats']} Stats",
+                  f"{e['tools']} Tools",
+                  f"{e['racing']} Racing",
+                  f"{e['car1']} Car 1",
+                  f"{e['car2']} Car 2",
+                  f"{e['car3']} Car 3"
+              ]
+              return {
+                  "content": (
+                      "\U0001F4FB "
+                      "**PIT RADIO // EMOJI CHECK**"
+                  ),
+                  "embeds": [{
+                      "title": "Pit Radio",
+                      "description": (
+                          "Radio loud and clear.\n\n"
+                          "**Emoji check**\n"
+                          + "\n".join(lines)
+                      ),
+                      "color": 16766720,
+                      "fields": link_field(e),
+                      "footer": {
+                          "text": f"Pit Radio · {name}"
+                      }
+                  }]
+              }
+          # Manual announcements and releases can ping configured roles.
+          # Test messages never ping anyone.
+          ping = event == "release" or mode == "manual"
+
+          # Main community destination uses custom emojis.
+          if target in {"main", "both"}:
+              send(
+                  os.getenv("MAIN_WEBHOOK", ""),
+                  build(True),
+                  os.getenv("MAIN_ROLE_ID", ""),
+                  ping
+              )
+          # Changelog belongs to the same community,
+          # therefore custom emojis are enabled here as well.
+          if target == "changelog":
+              send(
+                  os.getenv("CHANGELOG_WEBHOOK", ""),
+                  build(True),
+                  os.getenv("MAIN_ROLE_ID", ""),
+                  ping
+              )
+          # External servers use standard fallback emojis.
+          if target in {"external", "both"}:
+              send(
+                  os.getenv("EXTERNAL_WEBHOOK", ""),
+                  build(False),
+                  os.getenv("EXTERNAL_ROLE_ID", ""),
+                  ping
+              )
+          PY
