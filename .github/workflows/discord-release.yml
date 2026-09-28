@@ -3,6 +3,7 @@ name: Pit Radio
 on:
   release:
     types: [published]
+
   workflow_dispatch:
     inputs:
       mode:
@@ -11,24 +12,29 @@ on:
         default: "test"
         type: choice
         options: [test, manual]
+
       target:
         description: "Discord target"
         required: true
         default: "gridsync"
         type: choice
-        options: [gridsync, changelog, cannabeez, both]
+        options: [gridsync, changelog, tools, cannabeez, both]
+
       manual_title:
         description: "Release / announcement title"
         required: false
         default: ""
+
       manual_intro:
         description: "Short intro"
         required: false
         default: ""
+
       manual_details:
-        description: "Details separated with |"
+        description: "icon::text entries separated with |"
         required: false
         default: ""
+
       manual_url:
         description: "GridSync page"
         required: false
@@ -37,13 +43,17 @@ on:
 jobs:
   broadcast:
     runs-on: ubuntu-latest
+
     steps:
       - name: Broadcast to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           CHANGELOG_WEBHOOK: ${{ secrets.CHANGELOG_WEBHOOK }}
+          TOOLS_WEBHOOK: ${{ secrets.TOOLS_WEBHOOK }}
           CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
+
           GRIDSYNC_ROLE_ID: "1553676045692043294"
+          TOOLS_ROLE_ID: ${{ vars.TOOLS_ROLE_ID }}
           CANNABEEZ_ROLE_ID: "1143968549883351101"
 
           EMOJI_CAR1: "1554096426781249546"
@@ -61,7 +71,6 @@ jobs:
 
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_NAME: ${{ github.event.release.name }}
-          RELEASE_URL: ${{ github.event.release.html_url }}
           RELEASE_BODY: ${{ github.event.release.body }}
           MANUAL_MODE: ${{ github.event.inputs.mode }}
           MANUAL_TARGET: ${{ github.event.inputs.target }}
@@ -79,28 +88,31 @@ jobs:
           mode = os.getenv("MANUAL_MODE", "").strip().lower()
           target = os.getenv("MANUAL_TARGET", "gridsync").strip().lower()
 
-          if event == "release": target = "both"
-          if target not in {"gridsync", "changelog", "cannabeez", "both"}:
+          if event == "release":
+              target = "both"
+
+          if target not in {"gridsync", "changelog", "tools", "cannabeez", "both"}:
               target = "gridsync"
 
           cfg = {
-              "gs": ("gridsync_symbol", "EMOJI_GRIDSYNC", "\U0001F3C1"),
-              "logo": ("gridsync_logo_discord", "EMOJI_GRIDSYNC_LOGO", "\U0001F3C1"),
-              "discord": ("discord_head", "EMOJI_DISCORD_HEAD", "\U0001F4AC"),
-              "download": ("download_symbol", "EMOJI_DOWNLOAD", "\u2B07\uFE0F"),
-              "voice": ("voice_packs_symbol", "EMOJI_VOICE_PACKS", "\U0001F399\uFE0F"),
-              "ratix": ("ratix_symbol", "EMOJI_RATIX", "\U0001F4CA"),
-              "tools": ("tools_symbol", "EMOJI_TOOLS", "\U0001F6E0\uFE0F"),
-              "iracedeck": ("iracedeck", "EMOJI_IRACEDECK", "\U0001F3CE\uFE0F"),
-              "irdh": ("irdh", "EMOJI_IRDH", "\U0001F3CE\uFE0F"),
-              "car1": ("car1", "EMOJI_CAR1", "\U0001F3CE\uFE0F"),
-              "car2": ("car2", "EMOJI_CAR2", "\U0001F3CE\uFE0F"),
-              "car3": ("car3", "EMOJI_CAR3", "\U0001F3CE\uFE0F")
+              "gs": ("gridsync_symbol", "EMOJI_GRIDSYNC", "🏁"),
+              "logo": ("gridsync_logo_discord", "EMOJI_GRIDSYNC_LOGO", "🏁"),
+              "discord": ("discord_head", "EMOJI_DISCORD_HEAD", "💬"),
+              "download": ("download_symbol", "EMOJI_DOWNLOAD", "⬇️"),
+              "voice": ("voice_packs_symbol", "EMOJI_VOICE_PACKS", "🎙️"),
+              "ratix": ("ratix_symbol", "EMOJI_RATIX", "📊"),
+              "tools": ("tools_symbol", "EMOJI_TOOLS", "🛠️"),
+              "iracedeck": ("iracedeck", "EMOJI_IRACEDECK", "🏎️"),
+              "irdh": ("irdh", "EMOJI_IRDH", "🏎️"),
+              "car1": ("car1", "EMOJI_CAR1", "🏎️"),
+              "car2": ("car2", "EMOJI_CAR2", "🏎️"),
+              "car3": ("car3", "EMOJI_CAR3", "🏎️")
           }
 
           def icons(custom):
               return {
-                  k: f"<:{name}:{os.getenv(env)}>" if custom and os.getenv(env) else fallback
+                  k: f"<:{name}:{os.getenv(env)}>"
+                  if custom and os.getenv(env) else fallback
                   for k, (name, env, fallback) in cfg.items()
               }
 
@@ -108,16 +120,111 @@ jobs:
               text = text or ""
               return text if len(text) <= limit else text[:limit - 3] + "..."
 
+          def details(raw, e):
+              lines = []
+
+              for item in raw.split("|"):
+                  item = item.strip()
+                  if not item:
+                      continue
+
+                  key, text = "gs", item
+
+                  if "::" in item:
+                      candidate, text = item.split("::", 1)
+                      candidate = candidate.strip().lower()
+                      text = text.strip()
+                      if candidate in cfg:
+                          key = candidate
+
+                  lines.append(f"{e[key]} {text}")
+
+              return lines
+
           def link_field(e, url=""):
               return [{
-                  "name": f"{e['download']} Previews · Details · Download",
+                  "name": f"{e['download']} Details · Download",
                   "value": f"[Open on GridSync]({url or WEBSITE})",
                   "inline": False
               }]
 
+          def build(custom):
+              e = icons(custom)
+
+              if event == "release":
+                  title = os.getenv("RELEASE_NAME") or "New GridSync Release"
+                  body = trim(os.getenv("RELEASE_BODY", "").strip(), 1700)
+
+                  return {
+                      "content": f"{e['gs']} **PIT RADIO // NEW RELEASE**",
+                      "embeds": [{
+                          "title": title,
+                          "description": body or "A new GridSync release is now available.",
+                          "color": 16766720,
+                          "fields": link_field(e),
+                          "footer": {"text": "Pit Radio · GridSync Community"}
+                      }]
+                  }
+
+              if mode == "manual":
+                  title = trim(
+                      os.getenv("MANUAL_TITLE", "").strip() or "GridSync Announcement",
+                      256
+                  )
+                  intro = trim(os.getenv("MANUAL_INTRO", "").strip(), 500)
+                  url = os.getenv("MANUAL_URL", "").strip()
+                  lines = details(os.getenv("MANUAL_DETAILS", ""), e)
+
+                  desc = "\n\n".join(
+                      x for x in [
+                          f"*{intro}*" if intro else "",
+                          "\n".join(lines)
+                      ] if x
+                  )
+
+                  return {
+                      "content": f"{e['gs']} **PIT RADIO // GRIDSYNC BULLETIN**",
+                      "embeds": [{
+                          "title": title,
+                          "description": desc or "GridSync update.",
+                          "color": 16766720,
+                          "fields": link_field(e, url),
+                          "footer": {"text": "Pit Radio · GridSync Community"}
+                      }]
+                  }
+
+              lines = [
+                  f"{e[k]} {label}" for k, label in [
+                      ("gs", "GridSync Symbol"),
+                      ("logo", "GridSync Logo"),
+                      ("discord", "Discord"),
+                      ("download", "Download"),
+                      ("voice", "Voice Packs"),
+                      ("ratix", "RaTiX"),
+                      ("tools", "Tools"),
+                      ("iracedeck", "iRaceDeck"),
+                      ("irdh", "iRDH"),
+                      ("car1", "Car 1"),
+                      ("car2", "Car 2"),
+                      ("car3", "Car 3")
+                  ]
+              ]
+
+              return {
+                  "content": "📻 **PIT RADIO // EMOJI CHECK**",
+                  "embeds": [{
+                      "title": "GridSync Pit Radio",
+                      "description": "Radio loud and clear.\n\n**Emoji check**\n" + "\n".join(lines),
+                      "color": 16766720,
+                      "fields": link_field(e),
+                      "footer": {"text": "Pit Radio · GridSync Community"}
+                  }]
+              }
+
           def send(webhook, payload, role="", ping=False):
               msg = json.loads(json.dumps(payload))
               msg["allowed_mentions"] = {"roles": [role]} if ping and role else {"parse": []}
+
               if ping and role:
                   msg["content"] = f"<@&{role}>\n" + msg.get("content", "")
 
@@ -138,92 +245,6 @@ jobs:
                   print(e.read().decode(errors="replace"))
                   raise
 
-          def build(custom):
-              e = icons(custom)
-
-              if event == "release":
-                  name = os.getenv("RELEASE_NAME") or "New GridSync Release"
-                  body = trim(os.getenv("RELEASE_BODY", "").strip(), 1700)
-                  return {
-                      "content": f"{e['gs']} **PIT RADIO // NEW RELEASE**",
-                      "embeds": [{
-                          "title": name,
-                          "description": body or "A new GridSync release is now available.",
-                          "color": 16766720,
-                          "fields": link_field(e),
-                          "footer": {"text": "Pit Radio · GridSync Community"}
-                      }]
-                  }
-
-              if mode == "manual":
-                  title = trim(
-                      os.getenv("MANUAL_TITLE", "").strip()
-                      or "GridSync Announcement",
-                      256
-                  )
-                  intro = trim(os.getenv("MANUAL_INTRO", "").strip(), 500)
-                  url = os.getenv("MANUAL_URL", "").strip()
-                  details = [
-                      x.strip()
-                      for x in os.getenv("MANUAL_DETAILS", "").split("|")
-                      if x.strip()
-                  ]
-
-                  order = [
-                      "gs", "discord", "voice", "ratix", "tools",
-                      "download", "irdh", "iracedeck", "car1", "car2", "car3"
-                  ]
-                  lines = [
-                      f"{e[order[i]] if i < len(order) else '•'} {x}"
-                      for i, x in enumerate(details)
-                  ]
-                  desc = "\n\n".join(
-                      x for x in [
-                          f"*{intro}*" if intro else "",
-                          "\n".join(lines)
-                      ] if x
-                  )
-
-                  return {
-                      "content": f"{e['gs']} **PIT RADIO // GRIDSYNC BULLETIN**",
-                      "embeds": [{
-                          "title": title,
-                          "description": desc or "GridSync update.",
-                          "color": 16766720,
-                          "fields": link_field(e, url),
-                          "footer": {"text": "Pit Radio · GridSync Community"}
-                      }]
-                  }
-
-              lines = [
-                  f"{e['gs']} GridSync Symbol",
-                  f"{e['logo']} GridSync Logo",
-                  f"{e['discord']} Discord",
-                  f"{e['download']} Download",
-                  f"{e['voice']} Voice Packs",
-                  f"{e['ratix']} RaTiX",
-                  f"{e['tools']} Tools",
-                  f"{e['iracedeck']} iRaceDeck",
-                  f"{e['irdh']} iRDH",
-                  f"{e['car1']} Car 1",
-                  f"{e['car2']} Car 2",
-                  f"{e['car3']} Car 3"
-              ]
-
-              return {
-                  "content": "\U0001F4FB **PIT RADIO // EMOJI CHECK**",
-                  "embeds": [{
-                      "title": "GridSync Pit Radio",
-                      "description": (
-                          "Radio loud and clear.\n\n"
-                          "**Emoji check**\n" + "\n".join(lines)
-                      ),
-                      "color": 16766720,
-                      "fields": link_field(e),
-                      "footer": {"text": "Pit Radio · GridSync Community"}
-                  }]
-              }
-
           ping = event == "release" or mode == "manual"
 
           if target in {"gridsync", "both"}:
@@ -239,6 +260,14 @@ jobs:
                   os.environ["CHANGELOG_WEBHOOK"],
                   build(True),
                   os.environ["GRIDSYNC_ROLE_ID"],
+                  ping
+              )
+
+          if target == "tools":
+              send(
+                  os.environ["TOOLS_WEBHOOK"],
+                  build(True),
+                  os.getenv("TOOLS_ROLE_ID", ""),
                   ping
               )
 
