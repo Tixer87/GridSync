@@ -31,6 +31,7 @@ jobs:
       - name: Broadcast to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
