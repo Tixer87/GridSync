@@ -44,6 +44,7 @@ jobs:
           CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
           GRIDSYNC_ROLE_ID: "1553676045692043294"
           CANNABEEZ_ROLE_ID: "1143968549883351101"
+
           EMOJI_CAR1: "1554096426781249546"
           EMOJI_CAR2: "1554096456888221726"
           EMOJI_CAR3: "1554096479256317982"
@@ -56,6 +57,7 @@ jobs:
           EMOJI_RATIX: "1554093240339267604"
           EMOJI_TOOLS: "1554093263399559178"
           EMOJI_VOICE_PACKS: "1554093292776325170"
+
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
@@ -71,11 +73,15 @@ jobs:
           python - <<'PY'
           import json, os, urllib.request, urllib.error
 
+          WEBSITE = "https://gridsync.ch/"
           event = os.getenv("EVENT_NAME", "")
           mode = os.getenv("MANUAL_MODE", "").strip().lower()
           target = os.getenv("MANUAL_TARGET", "gridsync").strip().lower()
-          if event == "release": target = "both"
-          if target not in {"gridsync", "cannabeez", "both"}: target = "gridsync"
+
+          if event == "release":
+              target = "both"
+          if target not in {"gridsync", "cannabeez", "both"}:
+              target = "gridsync"
 
           cfg = {
               "gs": ("gridsync_symbol", "EMOJI_GRIDSYNC", "\U0001F3C1"),
@@ -105,13 +111,19 @@ jobs:
           def send(webhook, payload, role="", ping=False):
               msg = json.loads(json.dumps(payload))
               msg["allowed_mentions"] = {"roles": [role]} if ping and role else {"parse": []}
-              if ping and role: msg["content"] = f"<@&{role}>\n" + msg.get("content", "")
+              if ping and role:
+                  msg["content"] = f"<@&{role}>\n" + msg.get("content", "")
+
               req = urllib.request.Request(
                   webhook,
                   data=json.dumps(msg).encode(),
-                  headers={"Content-Type": "application/json", "User-Agent": "DiscordBot (https://gridsync.ch, 1.0)"},
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": "DiscordBot (https://gridsync.ch, 1.0)"
+                  },
                   method="POST"
               )
+
               try:
                   with urllib.request.urlopen(req, timeout=20) as r:
                       print(f"Pit Radio broadcast successful: HTTP {r.status}")
@@ -126,30 +138,65 @@ jobs:
                   name = os.getenv("RELEASE_NAME") or "New GridSync Release"
                   url = os.getenv("RELEASE_URL", "")
                   body = trim(os.getenv("RELEASE_BODY", "").strip(), 1700)
+
                   return {
                       "content": f"{e['gs']} **PIT RADIO // NEW RELEASE**",
                       "embeds": [{
                           "title": name,
+                          "url": WEBSITE,
                           "description": body or "A new GridSync release is now available.",
                           "color": 16766720,
-                          "fields": [{"name": f"{e['download']} GridSync Release", "value": f"[Open release]({url})", "inline": False}],
+                          "fields": [{
+                              "name": f"{e['download']} GridSync Release",
+                              "value": f"[Open release]({url})",
+                              "inline": False
+                          }],
                           "footer": {"text": "Pit Radio · GridSync Community"}
                       }]
                   }
 
               if mode == "manual":
-                  title = trim(os.getenv("MANUAL_TITLE", "").strip() or "GridSync Announcement", 256)
+                  title = trim(
+                      os.getenv("MANUAL_TITLE", "").strip()
+                      or "GridSync Announcement",
+                      256
+                  )
                   intro = trim(os.getenv("MANUAL_INTRO", "").strip(), 500)
                   url = os.getenv("MANUAL_URL", "").strip()
-                  details = [x.strip() for x in os.getenv("MANUAL_DETAILS", "").split("|") if x.strip()]
-                  order = ["gs", "discord", "voice", "ratix", "tools", "download", "irdh", "iracedeck", "car1", "car2", "car3"]
-                  lines = [f"{e[order[i]] if i < len(order) else '•'} {x}" for i, x in enumerate(details)]
-                  desc = "\n\n".join(x for x in [f"*{intro}*" if intro else "", "\n".join(lines)] if x)
-                  fields = [{"name": f"{e['download']} Previews · Details · Download", "value": f"[Open on GridSync]({url})", "inline": False}] if url else []
+                  details = [
+                      x.strip()
+                      for x in os.getenv("MANUAL_DETAILS", "").split("|")
+                      if x.strip()
+                  ]
+
+                  order = [
+                      "gs", "discord", "voice", "ratix", "tools",
+                      "download", "irdh", "iracedeck", "car1", "car2", "car3"
+                  ]
+
+                  lines = [
+                      f"{e[order[i]] if i < len(order) else '•'} {x}"
+                      for i, x in enumerate(details)
+                  ]
+
+                  desc = "\n\n".join(
+                      x for x in [
+                          f"*{intro}*" if intro else "",
+                          "\n".join(lines)
+                      ] if x
+                  )
+
+                  fields = [{
+                      "name": f"{e['download']} Previews · Details · Download",
+                      "value": f"[Open on GridSync]({url})",
+                      "inline": False
+                  }] if url else []
+
                   return {
                       "content": f"{e['gs']} **PIT RADIO // GRIDSYNC BULLETIN**",
                       "embeds": [{
                           "title": title,
+                          "url": WEBSITE,
                           "description": desc or "GridSync update.",
                           "color": 16766720,
                           "fields": fields,
@@ -171,11 +218,17 @@ jobs:
                   f"{e['car2']} Car 2",
                   f"{e['car3']} Car 3"
               ]
+
               return {
                   "content": "\U0001F4FB **PIT RADIO // EMOJI CHECK**",
                   "embeds": [{
                       "title": "GridSync Pit Radio",
-                      "description": "Radio loud and clear.\n\n**Emoji check**\n" + "\n".join(lines),
+                      "url": WEBSITE,
+                      "description": (
+                          "Radio loud and clear.\n\n"
+                          "**Emoji check**\n"
+                          + "\n".join(lines)
+                      ),
                       "color": 16766720,
                       "footer": {"text": "Pit Radio · GridSync Community"}
                   }]
@@ -184,8 +237,18 @@ jobs:
           ping = event == "release" or mode == "manual"
 
           if target in {"gridsync", "both"}:
-              send(os.environ["DISCORD_WEBHOOK"], build(True), os.environ["GRIDSYNC_ROLE_ID"], ping)
+              send(
+                  os.environ["DISCORD_WEBHOOK"],
+                  build(True),
+                  os.environ["GRIDSYNC_ROLE_ID"],
+                  ping
+              )
 
           if target in {"cannabeez", "both"}:
-              send(os.environ["CANNABEEZ_WEBHOOK"], build(False), os.environ["CANNABEEZ_ROLE_ID"], ping)
+              send(
+                  os.environ["CANNABEEZ_WEBHOOK"],
+                  build(False),
+                  os.environ["CANNABEEZ_ROLE_ID"],
+                  ping
+              )
           PY
