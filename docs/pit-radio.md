@@ -1,193 +1,332 @@
-# Pit Radio Technical Notes
+# Pit Radio Technical Reference
+
+This document explains the example workflow structure and shows which parts users normally customize.
 
 ## Architecture
 
-Pit Radio currently consists of:
-
 ```text
-GitHub Actions
-      │
-      ▼
-discord-release.yml
-      │
-      ├─ Manual workflow dispatch
-      └─ GitHub release event
-      │
-      ▼
-Python broadcast logic
-      │
-      ├─ Build message
-      ├─ Select emoji set
-      ├─ Select destination
-      ├─ Add role mention
-      └─ Send JSON payload
-      │
-      ▼
-Discord Webhook
+GitHub event
+or
+manual workflow run
+        │
+        ▼
+GitHub Actions workflow
+        │
+        ▼
+Configuration from Secrets and Variables
+        │
+        ▼
+Python message builder
+        │
+        ├─ selects target
+        ├─ selects emoji set
+        ├─ builds embed
+        ├─ adds optional role mention
+        └─ selects webhook
+        │
+        ▼
+Discord webhook
 ```
 
-## Workflow File
+## Public Configuration vs Secret Configuration
 
-Pit Radio runs from:
+### Public Workflow File
 
-```text
-.github/workflows/discord-release.yml
-```
-
-GitHub Actions only executes workflow files stored below `.github/workflows/`.
-
-## Events
-
-### Release Event
-
-A published GitHub Release triggers the workflow automatically.
-
-### workflow_dispatch
-
-Allows a user to manually start Pit Radio through the GitHub Actions interface.
-
-Current inputs include:
+The YAML workflow can safely contain:
 
 ```text
-mode
-target
-manual_title
-manual_intro
-manual_details
-manual_url
+secret names
+variable names
+target names
+fallback emoji codes
+message templates
+routing logic
 ```
 
-## Destination Routing
+### GitHub Actions Secrets
 
-The current routing model is:
+Use Secrets for sensitive values:
 
 ```text
-gridsync   → main GridSync webhook
-changelog  → GridSync changelog webhook
-cannabeez  → external community webhook
-both       → GridSync + external community
+webhook URLs
+tokens
+API keys
+passwords
 ```
 
-The target value is validated before sending.
+Example:
 
-This is important because an unknown target should never silently route to an unintended webhook.
+```yaml
+MAIN_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+```
 
-## Webhook Secrets
+Anyone can see the name `DISCORD_WEBHOOK` in a public repository.
 
-Webhook URLs are stored as GitHub Actions secrets.
+They cannot see the secret value stored behind it.
 
-Current examples:
+## GitHub Actions Variables
+
+Use Variables for reusable non secret configuration:
+
+```text
+community name
+website URL
+role IDs
+emoji IDs
+```
+
+Example:
+
+```yaml
+COMMUNITY_NAME: ${{ vars.COMMUNITY_NAME }}
+MAIN_ROLE_ID: ${{ vars.MAIN_ROLE_ID }}
+```
+
+## Example Webhook Mapping
+
+The example workflow uses:
+
+```text
+MAIN_WEBHOOK
+CHANGELOG_WEBHOOK
+EXTERNAL_WEBHOOK
+```
+
+The corresponding GitHub Secrets are:
 
 ```text
 DISCORD_WEBHOOK
 CHANGELOG_WEBHOOK
-CANNABEEZ_DISCORD_WEBHOOK
+EXTERNAL_DISCORD_WEBHOOK
 ```
 
-Secrets are injected into the workflow at runtime.
+You may rename these in your own version.
 
-They should never be committed into the repository.
+If you rename them, update both the workflow environment variables and the Secret names they reference.
 
-## Custom Emojis
+## Target Routing
 
-GridSync emoji configuration consists of:
+The example targets are:
 
 ```text
-logical key
-Discord emoji name
-environment variable containing the emoji ID
-Unicode fallback
+main
+changelog
+external
+both
 ```
 
-For a GridSync destination:
+Their example behavior is:
 
 ```text
-custom emoji available
-→ <:name:id>
+main
+→ main webhook
+→ custom emojis enabled
+→ optional main role mention
+
+changelog
+→ changelog webhook
+→ custom emojis enabled
+→ optional main role mention
+
+external
+→ external webhook
+→ fallback emojis
+→ optional external role mention
+
+both
+→ main webhook
+→ external webhook
 ```
 
-For an external destination:
+This routing is only an example.
+
+You can add, remove or rename destinations.
+
+## Why External Uses Fallback Emojis
+
+Discord custom emojis may not be usable on another server.
+
+For that reason the example workflow calls:
+
+```python
+build(False)
+```
+
+for the external target.
+
+That forces fallback emojis.
+
+If your external destination can use the same custom emojis, change it to:
+
+```python
+build(True)
+```
+
+## Emoji Configuration
+
+Each emoji entry follows this structure:
+
+```python
+"logical_key": (
+    "discord_emoji_name",
+    "GITHUB_VARIABLE_NAME",
+    "unicode_fallback"
+)
+```
+
+Example:
+
+```python
+"tools": (
+    "tools",
+    "EMOJI_TOOLS",
+    "\U0001F6E0\uFE0F"
+)
+```
+
+To configure a custom emoji:
+
+1. Change `tools` to the exact Discord emoji name if necessary
+2. Create the GitHub Variable `EMOJI_TOOLS`
+3. Set its value to the numeric Discord emoji ID
+
+If the variable is empty, the fallback is used.
+
+## Manual Input Fields
+
+### mode
 
 ```text
-custom emoji disabled
-→ Unicode fallback
+test
+manual
 ```
 
-This allows one payload system to support both branded and generic Discord servers.
-
-## Role Mentions
-
-Pit Radio can prepend:
+### target
 
 ```text
-<@&ROLE_ID>
+main
+changelog
+external
+both
 ```
 
-to the message content.
+### manual_title
 
-`allowed_mentions` is restricted so Discord only parses the intended role mention.
+The embed title.
 
-This prevents uncontrolled mentions from text inside an announcement.
+### manual_intro
 
-## Embed Layout
+Optional introductory text.
 
-Current Pit Radio posts follow this structure:
+### manual_details
+
+Multiple items separated with:
 
 ```text
-PIT RADIO header
-
-Embed title
-Introduction
-Details
-
-Previews · Details · Download
-Open on GridSync
-
-Pit Radio · GridSync Community
+|
 ```
 
-The title is intentionally not linked.
-
-Navigation is kept in the dedicated GridSync link field.
-
-## Manual Details
-
-`manual_details` uses the pipe character as a separator:
+Example:
 
 ```text
 Item one | Item two | Item three
 ```
 
-The workflow splits the value and assigns icons in order.
+### manual_url
 
-Additional entries can fall back to a neutral bullet after the configured icon list is exhausted.
+Optional link used in the details field.
 
-## HTTP Result
+If empty, `WEBSITE_URL` can be used as fallback.
 
-Discord webhook success normally returns:
+## Role Mentions
+
+The workflow may prepend:
+
+```text
+<@&ROLE_ID>
+```
+
+to the Discord message.
+
+The payload restricts `allowed_mentions` to the configured role.
+
+This prevents arbitrary mentions inside announcement text from being parsed by Discord.
+
+## Test Mode
+
+Test mode exists to confirm configuration before sending a real announcement.
+
+A good test should verify:
+
+```text
+correct channel
+correct webhook
+correct target
+correct emoji behavior
+correct website link
+no unwanted role mention
+```
+
+A successful Discord webhook request normally returns:
 
 ```text
 HTTP 204
 ```
 
-This means Discord accepted the webhook request.
+That only confirms that Discord accepted the webhook request.
 
-It does not by itself verify that the selected webhook points to the intended channel, which is why Pit Radio includes explicit target routing and test mode.
+It does not prove that the webhook points to the intended channel.
 
-## Extending Pit Radio
+## Release Mode
 
-Possible future additions include:
+A published GitHub Release provides:
 
 ```text
-news
-maintenance
-voicepack
-ratix
-livery
-tools
-website updates
-server status
-additional Discord communities
+release name
+release body
+release URL
 ```
 
-The existing target and payload structure can be extended incrementally.
+The workflow can use those values automatically.
+
+Users who do not publish GitHub Releases can remove release mode entirely and keep only manual mode.
+
+## What Most Users Need To Change
+
+For a basic installation, change or configure these items:
+
+```text
+DISCORD_WEBHOOK
+CHANGELOG_WEBHOOK
+EXTERNAL_DISCORD_WEBHOOK
+
+COMMUNITY_NAME
+WEBSITE_URL
+
+MAIN_ROLE_ID
+EXTERNAL_ROLE_ID
+
+optional EMOJI variables
+optional emoji names
+optional target names
+optional display text
+```
+
+Everything else can usually remain unchanged for the first test.
+
+## Extending the Workflow
+
+Common extensions include:
+
+```text
+more Discord channels
+more servers
+different role mentions
+different embed templates
+different colors
+different link labels
+different automatic triggers
+different announcement categories
+```
+
+Add one change at a time and use test mode before sending production announcements.
