@@ -30,8 +30,11 @@ jobs:
     steps:
       - name: Broadcast to Discord
         env:
+
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
+          CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}          
+          GRIDSYNC_ROLE_ID: "1553676045692043294"
+          CANNABEEZ_ROLE_ID: "1143968549883351101"
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
@@ -47,16 +50,35 @@ jobs:
           import os
           import urllib.request
           import urllib.error
-          webhook = os.environ["DISCORD_WEBHOOK"].strip()
+          gridsync_webhook = os.environ["DISCORD_WEBHOOK"].strip()
+          cannabeez_webhook = os.environ["CANNABEEZ_WEBHOOK"].strip()
+          gridsync_role_id = os.environ["GRIDSYNC_ROLE_ID"].strip()
+          cannabeez_role_id = os.environ["CANNABEEZ_ROLE_ID"].strip()
           event = os.environ.get("EVENT_NAME", "")
           mode = (os.environ.get("MANUAL_MODE") or "").strip().lower()
           def trim(text, limit):
               text = text or ""
               return text if len(text) <= limit else text[:limit - 3] + "..."
-          def send(payload):
+          def send(webhook, payload, role_id="", ping_role=False):
+              message = json.loads(json.dumps(payload))
+          
+              if ping_role and role_id:
+                  message["content"] = (
+                      f"<@&{role_id}>\n"
+                      + message.get("content", "")
+                  )
+          
+                  message["allowed_mentions"] = {
+                      "roles": [role_id]
+                  }
+              else:
+                  message["allowed_mentions"] = {
+                      "parse": []
+                  }
+          
               request = urllib.request.Request(
                   webhook,
-                  data=json.dumps(payload).encode("utf-8"),
+                  data=json.dumps(message).encode("utf-8"),
                   headers={
                       "Content-Type": "application/json",
                       "Accept": "application/json",
@@ -64,12 +86,21 @@ jobs:
                   },
                   method="POST"
               )
+          
               try:
                   with urllib.request.urlopen(request, timeout=20) as response:
-                      print(f"Pit Radio broadcast successful: HTTP {response.status}")
+                      print(
+                          f"Pit Radio broadcast successful: "
+                          f"HTTP {response.status}"
+                      )
               except urllib.error.HTTPError as error:
                   print(f"Discord returned HTTP {error.code}")
-                  print(error.read().decode("utf-8", errors="replace"))
+                  print(
+                      error.read().decode(
+                          "utf-8",
+                          errors="replace"
+                      )
+                  )
                   raise
           if event == "release":
               name = os.environ.get("RELEASE_NAME") or "New GridSync Release"
@@ -150,19 +181,33 @@ jobs:
               }
 
           else:
-              payload = {
-                  "content": "📻 **Pit Radio check. Radio loud and clear.**",
-                  "embeds": [
-                      {
-                          "title": "GridSync Pit Radio",
-                          "description": "Automatic release broadcasts are connected and ready.",
-                          "color": 16766720,
-                          "footer": {
-                              "text": "Pit Radio · GridSync Community"
-                          }
-                      }
-                  ]
-              }
+               payload = {
+                    "content": "📻 **Pit Radio check. Radio loud and clear.**",
+                    "embeds": [
+                        {
+                            "title": "GridSync Pit Radio",
+                            "description": "Automatic release broadcasts are connected and ready.",
+                            "color": 16766720,
+                            "footer": {
+                                "text": "Pit Radio · GridSync Community"
+                            }
+                        }
+                    ]
+                }
 
-          send(payload)
+          ping_role = event == "release" or mode == "manual"
+
+          send(
+              gridsync_webhook,
+              payload,
+              gridsync_role_id,
+              ping_role
+          )
+          
+          send(
+              cannabeez_webhook,
+              payload,
+              cannabeez_role_id,
+              ping_role
+          )
           PY
