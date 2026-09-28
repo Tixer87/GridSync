@@ -16,7 +16,7 @@ on:
         required: true
         default: "gridsync"
         type: choice
-        options: [gridsync, cannabeez, both]
+        options: [gridsync, cannabeez, changelog, both]
       manual_title:
         description: "Release / announcement title"
         required: false
