@@ -122,15 +122,3 @@ Discord:
 
 https://discord.gg/RSG338jb44
 ```
-
-Der Satz hier trifft deinen typischen Entwicklungsablauf ziemlich gut:
-
-> **As usually happens with GridSync projects, the small helper did not stay small for very long.**
-
-😄
-
-Und rechts bei **About** würde ich den alten Text ebenfalls ändern. Statt:
-
-```text
-Community voice packs for iRaceDeck by GridSync Community Projects.
-```
