@@ -43,7 +43,7 @@ jobs:
           TOOLS_WEBHOOK: ${{ secrets.TOOLS_RADIO }}
           CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
           GRIDSYNC_ROLE_ID: "1553676045692043294"
-          TOOLS_ROLE_ID: ${{ vars.TOOLS_ROLE_ID }}
+          TOOLS_ROLE_ID: "1553713149725646848"
           CANNABEEZ_ROLE_ID: "1143968549883351101"
           EMOJI_CAR1: "1554096426781249546"
           EMOJI_CAR2: "1554096456888221726"
@@ -148,7 +148,7 @@ jobs:
           if target == "changelog":
               send(os.environ["CHANGELOG_WEBHOOK"], build(True), os.environ["GRIDSYNC_ROLE_ID"], ping)
           if target == "tools":
-              send(os.environ["TOOLS_WEBHOOK"], build(True), os.getenv("TOOLS_ROLE_ID", ""), ping)
+              send(os.environ["TOOLS_WEBHOOK"], build(True), os.environ["TOOLS_ROLE_ID"], ping)
           if target in {"cannabeez", "both"}:
               send(os.environ["CANNABEEZ_WEBHOOK"], build(False), os.environ["CANNABEEZ_ROLE_ID"], ping)
           PY
