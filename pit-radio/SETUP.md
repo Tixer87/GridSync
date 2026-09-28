@@ -1,18 +1,26 @@
 # Pit Radio Setup
 
-This guide describes the basic setup required to reuse Pit Radio.
+This guide explains exactly what must be changed before using the example workflow.
 
-## 1. Create Discord Webhooks
+## 1. Copy the Example Workflow
 
-Create a webhook for every Discord destination you want Pit Radio to support.
-
-Example destinations:
+Copy:
 
 ```text
-Voice Packs
-Changelog
-External Community Server
+pit-radio/examples/discord-release.example.yml
 ```
+
+to:
+
+```text
+.github/workflows/discord-release.yml
+```
+
+GitHub only runs Actions workflows that are stored inside `.github/workflows/`.
+
+## 2. Create Discord Webhooks
+
+Create one webhook for every Discord destination you want to use.
 
 In Discord:
 
@@ -23,177 +31,284 @@ Channel Settings
 → New Webhook
 ```
 
-Copy each webhook URL.
-
-## 2. Add GitHub Actions Secrets
-
-In the GitHub repository open:
+The example workflow expects up to three webhook destinations:
 
 ```text
-Settings
-→ Secrets and variables
-→ Actions
-→ New repository secret
+main
+changelog
+external
 ```
 
-The current GridSync workflow uses:
+You do not need to use all three.
+
+## 3. Add GitHub Actions Secrets
+
+Open:
+
+```text
+Repository
+→ Settings
+→ Secrets and variables
+→ Actions
+→ Secrets
+```
+
+Create the secrets required by the destinations you use.
+
+The example workflow uses:
 
 ```text
 DISCORD_WEBHOOK
 CHANGELOG_WEBHOOK
-CANNABEEZ_DISCORD_WEBHOOK
+EXTERNAL_DISCORD_WEBHOOK
 ```
 
-Never place actual webhook URLs directly in the public workflow file.
-
-## 3. Configure Role IDs
-
-Pit Radio can mention configured Discord roles.
-
-Role IDs are stored in the workflow environment, for example:
+Example mapping:
 
 ```text
-GRIDSYNC_ROLE_ID
-CANNABEEZ_ROLE_ID
+DISCORD_WEBHOOK
+→ webhook for your main announcement channel
+
+CHANGELOG_WEBHOOK
+→ webhook for your changelog or update channel
+
+EXTERNAL_DISCORD_WEBHOOK
+→ webhook for another server or community
 ```
 
-To copy a Discord role ID, enable Developer Mode in Discord and use Copy ID on the role.
-
-## 4. Configure Custom Emojis
-
-Custom Discord emojis require:
+Important:
 
 ```text
-emoji name
-emoji ID
+Never paste the actual webhook URL into the public YAML file.
 ```
 
-The workflow generates the final Discord format automatically:
+## 4. Add GitHub Actions Variables
+
+Open:
 
 ```text
-<:name:id>
+Repository
+→ Settings
+→ Secrets and variables
+→ Actions
+→ Variables
 ```
 
-If a destination cannot use the custom emoji, Pit Radio falls back to standard Unicode emojis.
-
-## 5. Workflow Targets
-
-The current workflow supports:
+The example workflow supports:
 
 ```text
-gridsync
+COMMUNITY_NAME
+WEBSITE_URL
+MAIN_ROLE_ID
+EXTERNAL_ROLE_ID
+```
+
+Suggested values:
+
+```text
+COMMUNITY_NAME
+Your project or community name
+
+WEBSITE_URL
+https://example.com/
+
+MAIN_ROLE_ID
+Optional Discord role ID for the main server
+
+EXTERNAL_ROLE_ID
+Optional Discord role ID for the external server
+```
+
+Role IDs are optional.
+
+If no role should be mentioned, leave the variable empty or remove the role configuration from your own workflow.
+
+## 5. Optional Custom Emoji Variables
+
+The example workflow supports optional custom emoji IDs.
+
+Available variables include:
+
+```text
+EMOJI_MAIN
+EMOJI_LOGO
+EMOJI_DISCORD
+EMOJI_DOWNLOAD
+EMOJI_VOICE
+EMOJI_STATS
+EMOJI_TOOLS
+EMOJI_RACING
+EMOJI_CAR1
+EMOJI_CAR2
+EMOJI_CAR3
+```
+
+Only enter the numeric Discord emoji ID.
+
+Example:
+
+```text
+123456789012345678
+```
+
+Do not enter:
+
+```text
+<:name:123456789012345678>
+```
+
+Pit Radio builds that syntax automatically.
+
+If you leave an emoji variable empty, the workflow uses its fallback emoji.
+
+## 6. Custom Emoji Names
+
+The example workflow contains placeholder emoji names such as:
+
+```python
+("community", "EMOJI_MAIN", ...)
+("download", "EMOJI_DOWNLOAD", ...)
+("tools", "EMOJI_TOOLS", ...)
+```
+
+The first value must match the actual name of your Discord custom emoji.
+
+Example:
+
+If your emoji is:
+
+```text
+:my_download:
+```
+
+change:
+
+```python
+("download", "EMOJI_DOWNLOAD", ...)
+```
+
+to:
+
+```python
+("my_download", "EMOJI_DOWNLOAD", ...)
+```
+
+The ID still comes from the GitHub Variable.
+
+## 7. Rename Targets If Needed
+
+The example targets are:
+
+```text
+main
 changelog
-cannabeez
+external
 both
 ```
 
-A manual run should therefore select both a mode and a target.
+You may keep them as they are or rename them.
 
-Example:
-
-```text
-mode: manual
-target: changelog
-```
-
-## 6. Manual Fields
-
-Pit Radio manual mode currently accepts:
+If you rename a target, update every matching place in the workflow:
 
 ```text
-manual_title
-manual_intro
-manual_details
-manual_url
+workflow_dispatch options
+target validation
+send routing
 ```
 
-### manual_title
+For example, if `main` becomes `announcements`, update all checks that currently use `main`.
 
-Main embed title.
+## 8. Change the Display Text
 
-Example:
+Search the example workflow for these strings:
 
 ```text
-GridSync Discord Server Update
+PIT RADIO // NEW RELEASE
+PIT RADIO // COMMUNITY BULLETIN
+PIT RADIO // EMOJI CHECK
+Previews · Details · Download
+Open details
+Pit Radio
 ```
 
-### manual_intro
+You can change them to match your own project style.
 
-Short italic introduction above the details.
+## 9. Test the Workflow
 
-Example:
+Open:
 
 ```text
-The GridSync Discord server has received a major community update.
+Repository
+→ Actions
+→ Pit Radio
+→ Run workflow
 ```
 
-### manual_details
-
-Separate entries using `|`.
-
-Example:
-
-```text
-New onboarding system | Updated permissions | New changelog channel
-```
-
-Pit Radio converts each item into its own formatted line.
-
-### manual_url
-
-Optional GridSync destination page.
-
-Example:
-
-```text
-https://gridsync.ch/ratix/
-```
-
-If left empty, Pit Radio links to:
-
-```text
-https://gridsync.ch/
-```
-
-## 7. Test Before Publishing
-
-Run:
+Use:
 
 ```text
 mode: test
-target: gridsync
+target: main
 ```
 
-The test should confirm:
+Verify:
 
-- correct webhook
-- correct channel
-- custom emojis
-- embed format
-- GridSync link block
+- the message arrives in the correct channel
+- the correct webhook is used
+- custom emojis appear correctly
+- fallback emojis appear where expected
+- no role is pinged
+- the optional link is correct
 
-For an external server, run the test against that target and verify the fallback emojis.
+Then test any additional targets you plan to use.
 
-## 8. Automatic Releases
+## 10. Manual Announcement Test
 
-The workflow also listens for:
+Use:
+
+```text
+mode: manual
+target: main
+```
+
+Example values:
+
+```text
+manual_title:
+Community Update
+
+manual_intro:
+A short introduction to the update.
+
+manual_details:
+First change | Second change | Third change
+
+manual_url:
+https://example.com/update
+```
+
+## 11. Automatic Release Broadcasts
+
+If you want automatic release announcements, keep:
 
 ```yaml
-release:
-  types: [published]
+on:
+  release:
+    types: [published]
 ```
 
-When a GitHub Release is published, Pit Radio can automatically broadcast the release without a manual workflow run.
+If you do not want release broadcasts, remove the release trigger and the release specific logic from your own workflow.
 
-## Adding Another Destination
+## 12. Add Another Destination
 
-To add another server or channel:
+To add another Discord destination:
 
-1. Create a new Discord webhook
-2. Store it as a GitHub Actions secret
-3. Add the target to the workflow input options
-4. Allow the target in the Python validation set
-5. Add a send route for the new webhook
-6. Decide whether it should use GridSync custom emojis or fallback emojis
+1. Create another Discord webhook
+2. Add it as a GitHub Actions Secret
+3. Add the target to `workflow_dispatch`
+4. Add the target to the validation set
+5. Add a new send route
+6. Decide whether the destination should use custom emojis or fallback emojis
+7. Add an optional role variable if needed
 
-The existing architecture can therefore be extended without rebuilding Pit Radio from scratch.
+Pit Radio is intentionally structured so more destinations can be added without rebuilding the whole workflow.
