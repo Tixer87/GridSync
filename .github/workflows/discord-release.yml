@@ -1,0 +1,73 @@
+name: Pit Radio
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Broadcast to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ["DISCORD_WEBHOOK"]
+          event = os.environ.get("EVENT_NAME", "")
+
+          if event == "release":
+              name = os.environ.get("RELEASE_NAME") or "New GridSync Release"
+              url = os.environ.get("RELEASE_URL", "")
+              body = os.environ.get("RELEASE_BODY", "").strip()
+
+              if len(body) > 1800:
+                  body = body[:1797] + "..."
+
+              payload = {
+                  "content": "🏁 **NEW GRIDSYNC RELEASE — LIVE ON AIR**",
+                  "embeds": [
+                      {
+                          "title": name,
+                          "url": url,
+                          "description": body or "A new GridSync release is now available.",
+                          "color": 16766720,
+                          "footer": {
+                              "text": "Pit Radio · GridSync Community"
+                          }
+                      }
+                  ]
+              }
+
+          else:
+              payload = {
+                  "content": "📻 **Pit Radio check. Radio loud and clear.**",
+                  "embeds": [
+                      {
+                          "title": "GridSync Pit Radio",
+                          "description": "Automatic release broadcasts are connected and ready.",
+                          "color": 16766720,
+                          "footer": {
+                              "text": "Pit Radio · GridSync Community"
+                          }
+                      }
+                  ]
+              }
+
+          request = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"}
+          )
+
+          urllib.request.urlopen(request).read()
+          PY
