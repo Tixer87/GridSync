@@ -1,5 +1,4 @@
 name: Pit Radio
-
 on:
   release:
     types: [published]
@@ -25,7 +24,6 @@ on:
         description: "GridSync page"
         required: false
         default: ""
-
 jobs:
   broadcast:
     runs-on: ubuntu-latest
@@ -48,15 +46,12 @@ jobs:
           import os
           import urllib.request
           import urllib.error
-
           webhook = os.environ["DISCORD_WEBHOOK"].strip()
           event = os.environ.get("EVENT_NAME", "")
           mode = (os.environ.get("MANUAL_MODE") or "").strip().lower()
-
           def trim(text, limit):
               text = text or ""
               return text if len(text) <= limit else text[:limit - 3] + "..."
-
           def send(payload):
               request = urllib.request.Request(
                   webhook,
@@ -68,7 +63,6 @@ jobs:
                   },
                   method="POST"
               )
-
               try:
                   with urllib.request.urlopen(request, timeout=20) as response:
                       print(f"Pit Radio broadcast successful: HTTP {response.status}")
@@ -76,12 +70,10 @@ jobs:
                   print(f"Discord returned HTTP {error.code}")
                   print(error.read().decode("utf-8", errors="replace"))
                   raise
-
           if event == "release":
               name = os.environ.get("RELEASE_NAME") or "New GridSync Release"
               url = os.environ.get("RELEASE_URL", "")
               body = trim((os.environ.get("RELEASE_BODY") or "").strip(), 1700)
-
               payload = {
                   "content": "📻 **PIT RADIO // NEW RELEASE**",
                   "embeds": [
@@ -102,51 +94,37 @@ jobs:
                       }
                   ]
               }
-
           elif mode == "manual":
               title = trim(
                   (os.environ.get("MANUAL_TITLE") or "").strip()
                   or "GridSync Announcement",
                   256
               )
-
               intro = trim(
                   (os.environ.get("MANUAL_INTRO") or "").strip(),
                   500
               )
-
               url = (os.environ.get("MANUAL_URL") or "").strip()
-
               raw_details = (
                   os.environ.get("MANUAL_DETAILS") or ""
               ).strip()
-
               details = [
                   item.strip()
                   for item in raw_details.split("|")
                   if item.strip()
               ]
-
               icons = ["🎙️", "🏁", "🎧", "👤", "🏎️", "⚙️"]
-
               detail_lines = []
-
               for index, item in enumerate(details):
                   icon = icons[index] if index < len(icons) else "•"
                   detail_lines.append(f"{icon} {item}")
-
               description_parts = []
-
               if intro:
                   description_parts.append(f"*{intro}*")
-
               if detail_lines:
                   description_parts.append("\n".join(detail_lines))
-
               description = "\n\n".join(description_parts)
-
               fields = []
-
               if url:
                   fields.append(
                       {
@@ -155,7 +133,6 @@ jobs:
                           "inline": False
                       }
                   )
-
               payload = {
                   "content": "📻 **PIT RADIO // RELEASE BULLETIN**",
                   "embeds": [
