@@ -119,7 +119,7 @@ jobs:
               return lines
 
           def link_field(e,url=""):
-              return [{"name":f"{e['download']} Details · Download","value":f"[Open on GridSync]({url or WEBSITE})","inline":False}]
+              return [{"name":f"{e['download']} More Information","value":f"[Open on GridSync]({url or WEBSITE})","inline":False}]
 
           def build(custom):
               e=icons(custom)
@@ -135,7 +135,7 @@ jobs:
                   url=os.getenv("MANUAL_URL","").strip()
                   lines=parse_details(os.getenv("MANUAL_DETAILS",""),e)
                   desc="\n\n".join(x for x in [f"*{intro}*" if intro else "","\n".join(lines)] if x)
-                  return {"content":f"{e['gs']} **PIT RADIO // GRIDSYNC BULLETIN**","embeds":[{"title":title,"description":desc or "GridSync update.","color":16766720,"fields":link_field(e,url),"footer":{"text":"Pit Radio · GridSync Community"}}]}
+                  return {"content":f"{e['gs']} **PIT RADIO // GRIDSYNC BROADCAST**","embeds":[{"title":title,"description":desc or "GridSync update.","color":16766720,"fields":link_field(e,url),"footer":{"text":"Pit Radio · GridSync Community"}}]}
 
               checks=[("gs","GridSync Symbol"),("logo","GridSync Logo"),("discord","Discord"),("download","Download"),("voice","Voice Packs"),("ratix","RaTiX"),("tools","Tools"),("iracedeck","iRaceDeck"),("irdh","iRDH"),("car","Full Car")]
               lines=[f"{e[k]} {label}" for k,label in checks]
