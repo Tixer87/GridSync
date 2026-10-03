@@ -113,9 +113,6 @@ https://gridsync.ch/
 **GridSync Discord**  
 https://discord.gg/RSG338jb44
 
-**GitHub**  
-https://github.com/Tixer87
-
 ---
 
 ## Built differently
