@@ -1,124 +1,142 @@
-# GridSync Voice Packs
+# GridSync
 
-This repository is primarily used as the release and download backend for GridSync iRaceDeck Voice Packs.
+**Sim racing tools, voice packs, driver analysis and liveries.**
 
-The actual GridSync project lives on:
+Built for the grid. Made for the community.
 
+🌐 https://gridsync.ch/
+
+---
+
+## What is GridSync?
+
+GridSync is an independent sim racing project focused on building things
+that are useful, interesting or simply missing.
+
+It includes driver analysis, race engineer voice packs, racing tools,
+custom liveries and community projects.
+
+Some projects are open source.
+Others use GitHub for releases, downloads and technical infrastructure.
+
+The main GridSync platform lives at:
+
+**https://gridsync.ch/**
+
+---
+
+## Projects
+
+### RaTiX
+
+**Driver analysis beyond finishing position.**
+
+RaTiX evaluates driving performance across multiple components instead
+of reducing an entire race to one finishing result.
+
+Explore RaTiX on GridSync.
+
+---
+
+### Voice Packs
+
+**Race radio with personality.**
+
+Custom voice packs for iRaceDeck Race Engineer with complete callout
+coverage, audio previews and versioned releases.
+
+Official downloads are distributed through GitHub Releases.
+
+---
+
+### Looney F1 Tool
+
+**Real race results. Native Racing League Tools export.**
+
+An open source tool for processing real Formula 1 session results and
+exporting them for Racing League Tools.
+
+Practice · Qualifying · Sprint · Race
+
+GitHub:
+https://github.com/Tixer87/Looney-F1-Tool
+
+---
+
+### Liveries
+
+**GridSync on track.**
+
+Custom racing liveries and motorsport designs built around the GridSync
+visual identity.
+
+---
+
+## Tools
+
+GridSync also builds smaller utilities and automation projects around
+sim racing and the community.
+
+This includes projects such as Pit Radio and future GridSync tools.
+
+---
+
+## Releases
+
+This repository is also used as part of the GridSync release
+infrastructure.
+
+GitHub Releases provide versioned downloads for projects such as
+GridSync Voice Packs.
+
+Published releases can also trigger the automated GridSync Pit Radio
+workflow used for community announcements.
+
+---
+
+## GitHub
+
+GitHub is used across GridSync for:
+
+Open source projects  
+Versioned releases  
+Download hosting  
+Technical documentation  
+Development workflows  
+Release automation
+
+Not every GridSync project is open source.
+
+---
+
+## Community
+
+**GridSync Website**  
 https://gridsync.ch/
 
-## Why This Repository Exists
-
-GridSync Voice Packs can become too large for practical direct website hosting.
-
-GitHub Releases therefore acts as the distribution platform.
-
-The workflow is simple:
-
-```text
-Voice Pack
-→ GitHub Release
-→ GridSync Website
-→ Direct Download
-```
-
-The GridSync website links directly to the release files stored here.
-
-This repository is therefore mainly a reliable public download and release archive rather than a traditional source code repository.
-
-## Voice Pack Releases
-
-Published releases contain downloadable GridSync Voice Packs for iRaceDeck Race Engineer.
-
-The website provides the presentation, previews and project information.
-
-GitHub provides the actual release storage and download infrastructure.
-
-### GridSync Website
-
-https://gridsync.ch/
-
-## Pit Radio
-
-While setting up automated release announcements for the Voice Packs, a small GitHub Actions workflow was created to notify Discord when a new release was published.
-
-As usually happens with GridSync projects, the small helper did not stay small for very long.
-
-That workflow gradually became **Pit Radio**.
-
-Pit Radio can now handle:
-
-- Automatic GitHub Release broadcasts
-- Manual Discord announcements
-- Changelog posts
-- Multiple Discord webhook destinations
-- Selectable broadcast targets
-- Discord role mentions
-- Custom server emojis
-- Automatic fallback emojis for other servers
-- Test broadcasts
-- Reusable branded Discord embeds
-
-The production Pit Radio workflow used by GridSync lives in:
-
-```text
-.github/workflows/discord-release.yml
-```
-
-Sensitive webhook URLs are stored securely as GitHub Actions Secrets and are not included in the public workflow file.
-
-## Pit Radio Community Template
-
-Because Pit Radio became useful beyond the original Voice Pack release workflow, a reusable community version is being maintained separately.
-
-Branch:
-
-```text
-pit-radio-community
-```
-
-The community branch removes project specific configuration and documents how other users can configure Pit Radio for their own Discord server, repository and webhooks.
-
-It includes:
-
-```text
-README.md
-
-pit-radio/
-├─ README.md
-├─ SETUP.md
-├─ CHANGELOG.md
-└─ examples/
-   └─ discord-release.example.yml
-
-docs/
-└─ pit-radio.md
-```
-
-The community version uses placeholders and GitHub Actions Variables instead of GridSync specific role IDs, emoji IDs and destinations.
-
-## Repository Structure
-
-The `main` branch intentionally stays small.
-
-```text
-.github/
-└─ workflows/
-   └─ discord-release.yml
-
-README.md
-```
-
-Voice Pack binaries are distributed through **GitHub Releases** rather than being committed directly into the repository.
-
-## GridSync
-
-GridSync is a community driven sim racing project covering Voice Packs, RaTiX, liveries, tools and other experiments that somehow have a habit of becoming full projects.
-
-Website:
-
-https://gridsync.ch/
-
-Discord:
-
+**GridSync Discord**  
 https://discord.gg/RSG338jb44
 
+**GitHub**  
+https://github.com/Tixer87
+
+---
+
+## Built differently
+
+GridSync is not a software company.
+
+Projects usually start with a simple question:
+
+**Could I build that myself?**
+
+Ideas, testing, failures, redesigns and far too many
+“that still looks wrong” moments eventually turn into something useful.
+
+That is GridSync.
+
+---
+
+**Made for the community. Shared with the community.**
+
+See you on the grid.
