@@ -34,7 +34,7 @@ The main GridSync platform lives at:
 RaTiX evaluates driving performance across multiple components instead
 of reducing an entire race to one finishing result.
 
-Explore RaTiX on GridSync.
+Explore www.gridsync.ch/ratix
 
 ---
 
