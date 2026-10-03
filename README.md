@@ -18,11 +18,6 @@ custom liveries and community projects.
 
 Some projects are open source.
 Others use GitHub for releases, downloads and technical infrastructure.
-
-The main GridSync platform lives at:
-
-**https://gridsync.ch/**
-
 ---
 
 ## Projects
