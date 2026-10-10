@@ -45,20 +45,6 @@ Official downloads are distributed through GitHub Releases.
 
 ---
 
-### Looney F1 Tool
-
-**Real race results. Native Racing League Tools export.**
-
-An open source tool for processing real Formula 1 session results and
-exporting them for Racing League Tools.
-
-Practice · Qualifying · Sprint · Race
-
-GitHub:
-https://github.com/Tixer87/Looney-F1-Tool
-
----
-
 ### Liveries
 
 **GridSync on track.**
