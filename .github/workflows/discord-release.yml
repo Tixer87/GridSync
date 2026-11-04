@@ -15,6 +15,11 @@ on:
         required: false
         default: true
         type: boolean
+      voicepacks:
+        description: "Post to Voice Packs"
+        required: false
+        default: false
+        type: boolean
       changelog:
         description: "Post to Changelog"
         required: false
@@ -86,6 +91,7 @@ jobs:
           RELEASE_BODY: ${{ github.event.release.body }}
           MANUAL_MODE: ${{ github.event.inputs.mode }}
           TARGET_GRIDSYNC: ${{ github.event.inputs.gridsync }}
+          TARGET_VOICEPACKS: ${{ github.event.inputs.voicepacks }}
           TARGET_CHANGELOG: ${{ github.event.inputs.changelog }}
           TARGET_TOOLS: ${{ github.event.inputs.tools }}
           TARGET_RATIX: ${{ github.event.inputs.ratix }}
@@ -96,7 +102,7 @@ jobs:
           MANUAL_URL: ${{ github.event.inputs.manual_url }}
         run: |
           python - <<'PY'
-          import json,os,urllib.request,urllib.error,re
+          import json,os,urllib.request,urllib.error
           WEBSITE="https://gridsync.ch/"
           PACK_PAGE=WEBSITE+"voicepacks/pack.html?id="
           PACKS={
@@ -111,6 +117,7 @@ jobs:
               return os.getenv(name,"").lower()=="true"
           targets={
               "gridsync":enabled("TARGET_GRIDSYNC"),
+              "voicepacks":enabled("TARGET_VOICEPACKS"),
               "changelog":enabled("TARGET_CHANGELOG"),
               "tools":enabled("TARGET_TOOLS"),
               "ratix":enabled("TARGET_RATIX"),
@@ -118,8 +125,10 @@ jobs:
           }
           if event=="release":
               targets={k:False for k in targets}
-              targets["gridsync"]=True
+              targets["voicepacks"]=True
               targets["cannabeez"]=True
+          if targets["voicepacks"] and targets["gridsync"]:
+              targets["gridsync"]=False
           if not any(targets.values()):
               raise RuntimeError("No Pit Radio target selected.")
           cfg={
@@ -138,10 +147,7 @@ jobs:
               "car3":("car3","EMOJI_CAR3","")
           }
           def icons(custom):
-              e={
-                  k:(f"<:{name}:{os.getenv(env)}>" if custom and os.getenv(env) else fallback)
-                  for k,(name,env,fallback) in cfg.items()
-              }
+              e={k:(f"<:{name}:{os.getenv(env)}>" if custom and os.getenv(env) else fallback) for k,(name,env,fallback) in cfg.items()}
               e["car"]=e["car1"]+e["car2"]+e["car3"] if custom else "\U0001F3CE\uFE0F"
               return e
           def trim(text,limit):
@@ -168,12 +174,8 @@ jobs:
                       return PACK_PAGE+slug
               return WEBSITE
           def link_field(e,url=""):
-              return [{
-                  "name":f"{e['download']} More Information",
-                  "value":f"[Open on GridSync](<{url or WEBSITE}>)",
-                  "inline":False
-              }]
-          def build(custom):
+              return [{"name":f"{e['download']} More Information","value":f"[Open on GridSync](<{url or WEBSITE}>)","inline":False}]
+          def build(custom,target="gridsync"):
               e=icons(custom)
               if event=="release":
                   title=os.getenv("RELEASE_NAME") or "New GridSync Release"
@@ -194,22 +196,22 @@ jobs:
                   url=os.getenv("MANUAL_URL","").strip()
                   lines=parse_details(os.getenv("MANUAL_DETAILS",""),e)
                   desc="\n\n".join(x for x in [f"*{intro}*" if intro else "","\n".join(lines)] if x)
+                  voice=target=="voicepacks"
                   return {
-                      "content":f"{e['gs']} **PIT RADIO // GRIDSYNC BROADCAST**",
+                      "content":f"{e['voice'] if voice else e['gs']} **PIT RADIO // {'VOICE PACKS' if voice else 'GRIDSYNC'} BROADCAST**",
                       "embeds":[{
                           "title":title,
                           "description":desc or "GridSync update.",
                           "color":16766720,
                           "fields":link_field(e,url),
-                          "footer":{"text":"Pit Radio · GridSync Community"}
+                          "footer":{"text":"Pit Radio · GridSync Voice Packs" if voice else "Pit Radio · GridSync Community"}
                       }]
                   }
               checks=[
-                  ("gs","GridSync Symbol"),("logo","GridSync Logo"),
-                  ("discord","Discord"),("download","Download"),
-                  ("github","GitHub"),("voice","Voice Packs"),
-                  ("ratix","RaTiX"),("tools","Tools"),
-                  ("iracedeck","iRaceDeck"),("irdh","iRDH"),("car","Full Car")
+                  ("gs","GridSync Symbol"),("logo","GridSync Logo"),("discord","Discord"),
+                  ("download","Download"),("github","GitHub"),("voice","Voice Packs"),
+                  ("ratix","RaTiX"),("tools","Tools"),("iracedeck","iRaceDeck"),
+                  ("irdh","iRDH"),("car","Full Car")
               ]
               lines=[f"{e[key]} {label}" for key,label in checks]
               return {
@@ -228,11 +230,10 @@ jobs:
               msg["allowed_mentions"]={"roles":[role]} if ping and role else {"parse":[]}
               if ping and role:msg["content"]=f"<@&{role}>\n"+msg.get("content","")
               req=urllib.request.Request(
-                  webhook,data=json.dumps(msg).encode(),
-                  headers={
-                      "Content-Type":"application/json",
-                      "User-Agent":"DiscordBot (https://gridsync.ch, 1.0)"
-                  },method="POST"
+                  webhook,
+                  data=json.dumps(msg).encode(),
+                  headers={"Content-Type":"application/json","User-Agent":"DiscordBot (https://gridsync.ch, 1.0)"},
+                  method="POST"
               )
               try:
                   with urllib.request.urlopen(req,timeout=20) as response:
@@ -242,7 +243,8 @@ jobs:
                   raise
           ping=event=="release" or mode=="manual"
           routes={
-              "gridsync":("DISCORD_WEBHOOK","VOICE_PACKS_ROLE_ID" if event=="release" else "GRIDSYNC_ROLE_ID",True),
+              "gridsync":("DISCORD_WEBHOOK","GRIDSYNC_ROLE_ID",True),
+              "voicepacks":("DISCORD_WEBHOOK","VOICE_PACKS_ROLE_ID",True),
               "changelog":("CHANGELOG_WEBHOOK","GRIDSYNC_ROLE_ID",True),
               "tools":("TOOLS_WEBHOOK","TOOLS_ROLE_ID",True),
               "ratix":("RATIX_WEBHOOK","RATIX_ROLE_ID",True),
@@ -251,5 +253,5 @@ jobs:
           for name,active in targets.items():
               if not active:continue
               webhook_env,role_env,custom=routes[name]
-              send(os.environ[webhook_env],build(custom),os.environ[role_env],ping)
+              send(os.environ[webhook_env],build(custom,name),os.environ[role_env],ping)
           PY
