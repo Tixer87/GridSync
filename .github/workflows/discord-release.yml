@@ -106,6 +106,8 @@ jobs:
           WEBSITE="https://gridsync.ch/"
           PACK_PAGE=WEBSITE+"voicepacks/pack.html?id="
           PACKS={
+              "gunther-steiner":("gunther steiner","günther steiner","gunther-steiner","gunther_steiner","gunther_","guenther"),
+              "rob-smedley":("rob smedley","rob-smedley","rob_smedley","rob_v","rob-v","rob_v1"),
               "charming-ela":("charming ela","charming_ela","chaming_ela","charming-ela","ela-v"),
               "snoop-dogg":("snoop dogg","snoop-dogg","snoop_dogg","snoop-v"),
               "family-guy":("family guy","family-guy","family_guy","peter griffin","stewie griffin"),
@@ -172,7 +174,7 @@ jobs:
               for slug,aliases in PACKS.items():
                   if any(alias in title or alias in tag for alias in aliases):
                       return PACK_PAGE+slug
-              return WEBSITE
+              return WEBSITE+"voicepacks/"
           def link_field(e,url=""):
               return [{"name":f"{e['download']} More Information","value":f"[Open on GridSync](<{url or WEBSITE}>)","inline":False}]
           def build(custom,target="gridsync"):
