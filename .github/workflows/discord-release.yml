@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      liveries:
+        description: "Post to Liveries"
+        required: false
+        default: false
+        type: boolean
       changelog:
         description: "Post to Changelog"
         required: false
@@ -66,9 +71,11 @@ jobs:
           CHANGELOG_WEBHOOK: ${{ secrets.CHANGELOG_WEBHOOK }}
           TOOLS_WEBHOOK: ${{ secrets.TOOLS_RADIO }}
           RATIX_WEBHOOK: ${{ secrets.RATIX_FUNK }}
+          LIVERIES_WEBHOOK: ${{ secrets.LIVERIES_WEBHOOK }}
           CANNABEEZ_WEBHOOK: ${{ secrets.CANNABEEZ_DISCORD_WEBHOOK }}
           GRIDSYNC_ROLE_ID: "1553676045692043294"
           VOICE_PACKS_ROLE_ID: "1553712869953249420"
+          LIVERIES_ROLE_ID: ""
           TOOLS_ROLE_ID: "1553713149725646848"
           RATIX_ROLE_ID: "1553713059548364970"
           CANNABEEZ_ROLE_ID: "1143968549883351101"
@@ -92,6 +99,7 @@ jobs:
           MANUAL_MODE: ${{ github.event.inputs.mode }}
           TARGET_GRIDSYNC: ${{ github.event.inputs.gridsync }}
           TARGET_VOICEPACKS: ${{ github.event.inputs.voicepacks }}
+          TARGET_LIVERIES: ${{ github.event.inputs.liveries }}
           TARGET_CHANGELOG: ${{ github.event.inputs.changelog }}
           TARGET_TOOLS: ${{ github.event.inputs.tools }}
           TARGET_RATIX: ${{ github.event.inputs.ratix }}
@@ -120,6 +128,7 @@ jobs:
           targets={
               "gridsync":enabled("TARGET_GRIDSYNC"),
               "voicepacks":enabled("TARGET_VOICEPACKS"),
+              "liveries":enabled("TARGET_LIVERIES"),
               "changelog":enabled("TARGET_CHANGELOG"),
               "tools":enabled("TARGET_TOOLS"),
               "ratix":enabled("TARGET_RATIX"),
@@ -182,33 +191,19 @@ jobs:
               if event=="release":
                   title=os.getenv("RELEASE_NAME") or "New GridSync Release"
                   body=trim(os.getenv("RELEASE_BODY","").strip(),1700)
-                  return {
-                      "content":f"{e['voice']} **PIT RADIO // NEW VOICE PACK RELEASE**",
-                      "embeds":[{
-                          "title":title,
-                          "description":body or "A new GridSync Voice Pack release is now available.",
-                          "color":16766720,
-                          "fields":link_field(e,release_link()),
-                          "footer":{"text":"Pit Radio · GridSync Voice Packs"}
-                      }]
-                  }
+                  return {"content":f"{e['voice']} **PIT RADIO // NEW VOICE PACK RELEASE**","embeds":[{"title":title,"description":body or "A new GridSync Voice Pack release is now available.","color":16766720,"fields":link_field(e,release_link()),"footer":{"text":"Pit Radio · GridSync Voice Packs"}}]}
               if mode=="manual":
                   title=trim(os.getenv("MANUAL_TITLE","").strip() or "GridSync Announcement",256)
                   intro=trim(os.getenv("MANUAL_INTRO","").strip(),500)
                   url=os.getenv("MANUAL_URL","").strip()
                   lines=parse_details(os.getenv("MANUAL_DETAILS",""),e)
                   desc="\n\n".join(x for x in [f"*{intro}*" if intro else "","\n".join(lines)] if x)
-                  voice=target=="voicepacks"
-                  return {
-                      "content":f"{e['voice'] if voice else e['gs']} **PIT RADIO // {'VOICE PACKS' if voice else 'GRIDSYNC'} BROADCAST**",
-                      "embeds":[{
-                          "title":title,
-                          "description":desc or "GridSync update.",
-                          "color":16766720,
-                          "fields":link_field(e,url),
-                          "footer":{"text":"Pit Radio · GridSync Voice Packs" if voice else "Pit Radio · GridSync Community"}
-                      }]
+                  headers={
+                      "voicepacks":(e["voice"],"VOICE PACKS","Pit Radio · GridSync Voice Packs"),
+                      "liveries":(e["car"],"LIVERIES","Pit Radio · GridSync Liveries")
                   }
+                  icon,label,footer=headers.get(target,(e["gs"],"GRIDSYNC","Pit Radio · GridSync Community"))
+                  return {"content":f"{icon} **PIT RADIO // {label} BROADCAST**","embeds":[{"title":title,"description":desc or "GridSync update.","color":16766720,"fields":link_field(e,url),"footer":{"text":footer}}]}
               checks=[
                   ("gs","GridSync Symbol"),("logo","GridSync Logo"),("discord","Discord"),
                   ("download","Download"),("github","GitHub"),("voice","Voice Packs"),
@@ -216,27 +211,13 @@ jobs:
                   ("irdh","iRDH"),("car","Full Car")
               ]
               lines=[f"{e[key]} {label}" for key,label in checks]
-              return {
-                  "content":"\U0001F4FB **PIT RADIO // EMOJI CHECK**",
-                  "embeds":[{
-                      "title":"GridSync Pit Radio",
-                      "description":"Radio loud and clear.\n\n**Emoji check**\n"+"\n".join(lines),
-                      "color":16766720,
-                      "fields":link_field(e),
-                      "footer":{"text":"Pit Radio · GridSync Community"}
-                  }]
-              }
+              return {"content":"\U0001F4FB **PIT RADIO // EMOJI CHECK**","embeds":[{"title":"GridSync Pit Radio","description":"Radio loud and clear.\n\n**Emoji check**\n"+"\n".join(lines),"color":16766720,"fields":link_field(e),"footer":{"text":"Pit Radio · GridSync Community"}}]}
           def send(webhook,payload,role="",ping=False):
               if not webhook:raise RuntimeError("Webhook URL missing.")
               msg=json.loads(json.dumps(payload))
               msg["allowed_mentions"]={"roles":[role]} if ping and role else {"parse":[]}
               if ping and role:msg["content"]=f"<@&{role}>\n"+msg.get("content","")
-              req=urllib.request.Request(
-                  webhook,
-                  data=json.dumps(msg).encode(),
-                  headers={"Content-Type":"application/json","User-Agent":"DiscordBot (https://gridsync.ch, 1.0)"},
-                  method="POST"
-              )
+              req=urllib.request.Request(webhook,data=json.dumps(msg).encode(),headers={"Content-Type":"application/json","User-Agent":"DiscordBot (https://gridsync.ch, 1.0)"},method="POST")
               try:
                   with urllib.request.urlopen(req,timeout=20) as response:
                       print(f"Pit Radio broadcast successful: HTTP {response.status}")
@@ -247,6 +228,7 @@ jobs:
           routes={
               "gridsync":("DISCORD_WEBHOOK","GRIDSYNC_ROLE_ID",True),
               "voicepacks":("DISCORD_WEBHOOK","VOICE_PACKS_ROLE_ID",True),
+              "liveries":("LIVERIES_WEBHOOK","LIVERIES_ROLE_ID",True),
               "changelog":("CHANGELOG_WEBHOOK","GRIDSYNC_ROLE_ID",True),
               "tools":("TOOLS_WEBHOOK","TOOLS_ROLE_ID",True),
               "ratix":("RATIX_WEBHOOK","RATIX_ROLE_ID",True),
@@ -255,5 +237,5 @@ jobs:
           for name,active in targets.items():
               if not active:continue
               webhook_env,role_env,custom=routes[name]
-              send(os.environ[webhook_env],build(custom,name),os.environ[role_env],ping)
+              send(os.getenv(webhook_env,""),build(custom,name),os.getenv(role_env,""),ping)
           PY
