@@ -123,8 +123,7 @@ jobs:
           }
           event=os.getenv("EVENT_NAME","")
           mode=os.getenv("MANUAL_MODE","").strip().lower()
-          def enabled(name):
-              return os.getenv(name,"").lower()=="true"
+          def enabled(name):return os.getenv(name,"").lower()=="true"
           targets={
               "gridsync":enabled("TARGET_GRIDSYNC"),
               "voicepacks":enabled("TARGET_VOICEPACKS"),
@@ -138,10 +137,8 @@ jobs:
               targets={k:False for k in targets}
               targets["voicepacks"]=True
               targets["cannabeez"]=True
-          if targets["voicepacks"] and targets["gridsync"]:
-              targets["gridsync"]=False
-          if not any(targets.values()):
-              raise RuntimeError("No Pit Radio target selected.")
+          if targets["voicepacks"] and targets["gridsync"]:targets["gridsync"]=False
+          if not any(targets.values()):raise RuntimeError("No Pit Radio target selected.")
           cfg={
               "gs":("gridsync_symbol","EMOJI_GRIDSYNC","\U0001F3C1"),
               "logo":("gridsync_logo_discord","EMOJI_GRIDSYNC_LOGO","\U0001F3C1"),
@@ -181,8 +178,7 @@ jobs:
               title=os.getenv("RELEASE_NAME","").lower()
               tag=os.getenv("RELEASE_TAG","").lower()
               for slug,aliases in PACKS.items():
-                  if any(alias in title or alias in tag for alias in aliases):
-                      return PACK_PAGE+slug
+                  if any(alias in title or alias in tag for alias in aliases):return PACK_PAGE+slug
               return WEBSITE+"voicepacks/"
           def link_field(e,url=""):
               return [{"name":f"{e['download']} More Information","value":f"[Open on GridSync](<{url or WEBSITE}>)","inline":False}]
@@ -219,8 +215,7 @@ jobs:
               if ping and role:msg["content"]=f"<@&{role}>\n"+msg.get("content","")
               req=urllib.request.Request(webhook,data=json.dumps(msg).encode(),headers={"Content-Type":"application/json","User-Agent":"DiscordBot (https://gridsync.ch, 1.0)"},method="POST")
               try:
-                  with urllib.request.urlopen(req,timeout=20) as response:
-                      print(f"Pit Radio broadcast successful: HTTP {response.status}")
+                  with urllib.request.urlopen(req,timeout=20) as response:print(f"Pit Radio broadcast successful: HTTP {response.status}")
               except urllib.error.HTTPError as error:
                   print(error.read().decode(errors="replace"))
                   raise
