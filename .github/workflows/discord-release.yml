@@ -114,6 +114,7 @@ jobs:
           WEBSITE="https://gridsync.ch/"
           PACK_PAGE=WEBSITE+"voicepacks/pack.html?id="
           PACKS={
+              "michael-waltrip":("michael waltrip","michael-waltrip","michael_waltrip","waltrip","nascar legends","nascar-legends"),
               "gunther-steiner":("gunther steiner","günther steiner","gunther-steiner","gunther_steiner","gunther_","guenther"),
               "rob-smedley":("rob smedley","rob-smedley","rob_smedley","rob_v","rob-v","rob_v1"),
               "charming-ela":("charming ela","charming_ela","chaming_ela","charming-ela","ela-v"),
@@ -204,7 +205,7 @@ jobs:
                   ("gs","GridSync Symbol"),("logo","GridSync Logo"),("discord","Discord"),
                   ("download","Download"),("github","GitHub"),("voice","Voice Packs"),
                   ("ratix","RaTiX"),("tools","Tools"),("iracedeck","iRaceDeck"),
-                  ("irdh","iRDH"),("car","Full Car")
+                  ("irdh","irdh"),("car","Full Car")
               ]
               lines=[f"{e[key]} {label}" for key,label in checks]
               return {"content":"\U0001F4FB **PIT RADIO // EMOJI CHECK**","embeds":[{"title":"GridSync Pit Radio","description":"Radio loud and clear.\n\n**Emoji check**\n"+"\n".join(lines),"color":16766720,"fields":link_field(e),"footer":{"text":"Pit Radio · GridSync Community"}}]}
